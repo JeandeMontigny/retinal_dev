@@ -3,13 +3,20 @@
 
 #include "biodynamo.h"
 #include "random.h"
+#include "substance_initializers.h"
+
+
 
 namespace bdm {
   // cell type: 0=on; 1=off; -1=not attributed yet
   // std::setprecision (15) <<
 
 /* TODO
+
        - other comparison needed. This is not just one mosaic, but two. have to take that into account. RI doesn't necessary reflect the mosaic (ie two mosaic without overlaping would have high R) but just the regularity. check for cells pairs (pair of diff types). cell fate + movement should have a better result than movement or cell fate alone.
+
+       - at least 70% death for RGC + start with a thicker "multi layer" that will colapse in only one layer (that trigger cell movement)
+
 */
 
 // 0. Define my custom cell, which extends Cell by adding an extra
@@ -39,7 +46,8 @@ namespace bdm {
   };
 
 //TODO: add external biology modules: bioM_*
-  enum Substances { on_diffusion, off_diffusion };
+//  enum Substances { on_diffusion, off_diffusion };
+  enum Substances { on_diffusion, off_diffusion, on_substance_RGC_guide, off_substance_RGC_guide };
 
 // 1a. Define behavior:
   struct Chemotaxis : public BaseBiologyModule {
@@ -84,7 +92,7 @@ namespace bdm {
       }
 
       /* -- cell movement -- */
-      if (withMovement && cellClock >= 500) { // && cellClock >= 1600
+      if (withMovement && cellClock >= 200) { // && cellClock >= 1600 // 500
         // cell movement based on homotype substance gradient
         if(concentration>=0.104725) { // 0.1049 for high density - 0.104725 for normal density // 0.10465 for cell death with layer collapse - 0.1047 is too high (no collapse)
           cell->UpdatePosition(diff_gradient);
@@ -96,10 +104,10 @@ namespace bdm {
       }
 
       /* -- cell death -- */
-      if (withCellDeath && cellClock >= 500 && cellClock < 1600) { // && cellClock >= 800 && cellClock < 1600
+      if (withCellDeath && cellClock >= 200 && cellClock < 800) { // && cellClock >= 500 && cellClock < 1600
         // cell death depending on homotype substance concentration
         if (concentration >= 0.110 && gTRandom.Uniform(0, 1) < 0.1) { // die if concentration is too high; proba so all cells don't die simultaneously ; 0.1047 for already existing mosaic - 0.1048 for random position - 0.1047x for inbetween
-          Delete(*cell);
+          cell->RemoveFromSimulation();
         }
         // add vertical migration as the multi layer colapse in just on layer
         if(concentration>=0.1045) { // 104
@@ -109,7 +117,7 @@ namespace bdm {
         }
         // randomly kill ~60% cells (over 250 steps)
 //      if (gTRandom.Uniform(0, 1) < 0.004) {
-//        Delete(*cell);
+//        cell->RemoveFromSimulation();
 //      }
       }
 
@@ -376,6 +384,13 @@ namespace bdm {
     ModelInitializer::DefineSubstance(on_diffusion, "on_diffusion", 1, 0.5, 2); // 1, 0.5, 2
     ModelInitializer::DefineSubstance(off_diffusion, "off_diffusion", 1, 0.5, 2); // 1, 0.5, 2
 
+    // define substances for RGC dendrite attraction
+    ModelInitializer::DefineSubstance(on_substance_RGC_guide, "on_substance_RGC_guide", 0.5,0.1,2);
+    ModelInitializer::DefineSubstance(off_substance_RGC_guide, "off_substance_RGC_guide", 0.5,0.1,2);
+    // create substance gaussian distribution for RGC dendrite attraction
+    ModelInitializer::InitializeSubstance(on_substance_RGC_guide, "on_substance_RGC_guide", GaussianBand(20, 6, Axis::kZAxis));
+    ModelInitializer::InitializeSubstance(off_substance_RGC_guide, "off_substance_RGC_guide", GaussianBand(44, 8, Axis::kZAxis));
+
     // set visualization param
     Param::live_visualization_ = false;
     Param::export_visualization_ = true;
@@ -383,7 +398,7 @@ namespace bdm {
     Param::visualize_sim_objects_["MyCell"] = std::set<std::string>{"diameter_", "cell_type_"};
 
     // set some param
-    int maxStep=2501; // number of simulation steps // 1201
+    int maxStep=1201; // number of simulation steps // 1201 // 2501
     bool writeOutput = true; // if you want to write file for RI and cell position
     int outputFrequence = 100; // create cell position files every outputFrequence steps
     ofstream outputFile;
