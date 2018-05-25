@@ -75,18 +75,18 @@ namespace bdm {
       // if cell is type 1, concentration and gradient are the one of substance 1
       if (cell->GetCellType() == 1) {
         dg_1_->GetGradient(position, &gradient_1_);
-        gradient_z = Matrix::ScalarMult(0.08, gradient_1_);
+        gradient_z = Math::ScalarMult(0.08, gradient_1_);
         gradient_z[0] = 0; gradient_z[1]=0;
-        diff_gradient = Matrix::ScalarMult(-0.1, gradient_1_);
+        diff_gradient = Math::ScalarMult(-0.1, gradient_1_);
         diff_gradient[2]=0;
         concentration = dg_1_->GetConcentration(position);
       }
       // else if cell is type 2, concentration and gradient are the one of substance 2
       if (cell->GetCellType() == 0) {
         dg_0_->GetGradient(position, &gradient_0_);
-        gradient_z = Matrix::ScalarMult(0.08, gradient_0_);
+        gradient_z = Math::ScalarMult(0.08, gradient_0_);
         gradient_z[0] = 0; gradient_z[1]=0;
-        diff_gradient = Matrix::ScalarMult(-0.1, gradient_0_);
+        diff_gradient = Math::ScalarMult(-0.1, gradient_0_);
         diff_gradient[2]=0;
         concentration = dg_0_->GetConcentration(position);
       }
@@ -97,7 +97,7 @@ namespace bdm {
         if(concentration>=0.104725) { // 0.1049 for high density - 0.104725 for normal density // 0.10465 for cell death with layer collapse - 0.1047 is too high (no collapse)
           cell->UpdatePosition(diff_gradient);
           cell->UpdatePosition(gradient_z);
-          cell->SetPosition(cell->GetMassLocation());
+          cell->SetPosition(cell->GetPosition());
         }
         // random movement
 //        cell->UpdatePosition({gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), 0});
@@ -113,7 +113,7 @@ namespace bdm {
         if(concentration>=0.1045) { // 104
           cell->UpdatePosition(gradient_z);
 //          cell->UpdatePosition(diff_gradient);
-          cell->SetPosition(cell->GetMassLocation());
+          cell->SetPosition(cell->GetPosition());
         }
         // randomly kill ~60% cells (over 250 steps)
 //      if (gTRandom.Uniform(0, 1) < 0.004) {
@@ -319,7 +319,7 @@ namespace bdm {
 /* -------- simulate -------- */
   template <typename TResourceManager = ResourceManager<>>
   inline int Simulate(int argc, const char** argv) {
-    InitializeBioDynamo(argc, argv);
+    InitializeBiodynamo(argc, argv);
     // 3. Define initial model
 
     // Create an artificial bounds for the simulation space
