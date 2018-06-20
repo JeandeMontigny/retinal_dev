@@ -1,0 +1,25 @@
+[visualization]
+export = true
+live = true
+export_interval = 1
+
+    [[visualize_sim_object]]
+    name = "MyCell"
+    additional_data_members = [ "diameter_", "cell_type_" ]
+
+    [[visualize_sim_objects]]
+    name = "MyNeurite"
+    additional_data_members = [ "diameter_" ]
+
+    [[visualize_diffusion]]
+    name = "off_substance_RGC_guide"
+
+    [[visualize_diffusion]]
+    name = "on_substance_RGC_guide"
+
+    # [[visualize_diffusion]]
+    # name = "on_diffusion"
+    #
+    # [[visualize_diffusion]]
+    # name = "off_diffusion"
+
