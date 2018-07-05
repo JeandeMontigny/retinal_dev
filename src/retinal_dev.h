@@ -1,5 +1,5 @@
-#ifndef MOSAIC_H_
-#define MOSAIC_H_
+#ifndef RETINAL_DEV_
+#define RETINAL_DEV_
 
 #include "biodynamo.h"
 #include "random.h"
@@ -10,7 +10,7 @@
 
 namespace bdm {
   // cell type: 0=on; 1=off; -1=not attributed yet
-  // std::setprecision (15) <<
+  // setprecision (15) <<
 
   /* TODO
 
@@ -18,13 +18,42 @@ namespace bdm {
 
   */
 
+  using experimental::neuroscience::NeuriteElement;
+  using experimental::neuroscience::NeuronSoma;
+  using namespace std;
 
+  // Define my custom cell MyCell, which extends Cell
+  // TODO: MyCell has to extend NeuronSoma, not Cell
+  BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
+    //  BDM_SIM_OBJECT(MyCell, Cell) {
+    BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_);
+
+  public:
+    MyCellExt() {}
+
+    MyCellExt(const array<double, 3>& position) : Base(position) {}
+
+    void SetCellType(int t) { cell_type_[kIdx] = t; }
+    int GetCellType() const { return cell_type_[kIdx]; }
+    // This function is used by ParaView for coloring the cells by their type
+    int* GetCellTypePtr() { return cell_type_.data(); }
+
+    void SetInternalClock(int t) { internal_clock_[kIdx] = t; }
+    int GetInternalClock() const { return internal_clock_[kIdx]; }
+    int* GetInternalClockPtr() { return internal_clock_.data(); }
+
+  private:
+    vec<int> cell_type_;
+    vec<int> internal_clock_;
+  };
+
+// Define my custom neurite MyNeurite, which extends NeuriteElement
   BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
     BDM_SIM_OBJECT_HEADER(MyNeuriteExt, 1, has_to_retract_, beyond_threshold_, sleep_mode_, diam_before_retract_);
 
   public:
     MyNeuriteExt() {}
-    MyNeuriteExt(const std::array<double, 3>& position) : Base(position) {}
+    MyNeuriteExt(const array<double, 3>& position) : Base(position) {}
 
     void SetHasToRetract(int r) { has_to_retract_[kIdx] = r; }
     bool GetHasToRetract() const { return has_to_retract_[kIdx]; }
@@ -49,26 +78,28 @@ namespace bdm {
     vec<int> diam_before_retract_;
   };
 
-  // TODO: add external biology modules: bioM_*
-  //  enum Substances { on_substance_RGC_guide, off_substance_RGC_guide };
-  enum Substances { on_diffusion, off_diffusion, on_substance_RGC_guide, off_substance_RGC_guide };
 
+  template <typename TSimulation = Simulation<>>
   struct RGC_dendrite_growth : public BaseBiologyModule {
     RGC_dendrite_growth() : BaseBiologyModule(gAllBmEvents) {}
 
     template <typename T>
     void Run(T* sim_object) {
+      auto* sim = TSimulation::GetActive();
+      auto* random = sim->GetRandom();
+      auto* rm = sim->GetResourceManager();
+
       if (sim_object->template IsSoType<MyNeurite>()) {
         auto&& sim_objectNe = sim_object->template ReinterpretCast<MyNeurite>();
 
         if (!init_) {
-          dg_on_RGCguide_ = GetDiffusionGrid(on_substance_RGC_guide);
-          dg_off_RGCguide_ = GetDiffusionGrid(off_substance_RGC_guide);
+          dg_on_RGCguide_ = rm->GetDiffusionGrid("on_substance_RGC_guide");
+          dg_off_RGCguide_ = rm->GetDiffusionGrid("off_substance_RGC_guide");
           init_ = true;
         }
 
-        double diamReducSpeed = 0.00052;
-//        double branchingFactor = 0.002;
+        // double diamReducSpeed = 0.00052;
+        double branchingFactor = 0.002;
         // inline double getBranchingFactor(NeuriteElement ne) {
         //   return branchingFactor(4.5/ne->GetDiameter()*ne->GetDiameter());
         // }
@@ -76,7 +107,7 @@ namespace bdm {
         double threshold_1 = 0.8;
         double threshold_2 = 0.6;
         double growthSpeed = 1; //45
-        std::array<double, 3> gradient_RGCguide;
+        array<double, 3> gradient_RGCguide;
         double concentration = 0;
 
         auto ne = sim_objectNe.GetSoPtr();
@@ -99,25 +130,25 @@ namespace bdm {
               concentration = dg_off_RGCguide_->GetConcentration(positionNeurite);
             }
 
-            if (ne->GetDiameter() > 0.6 && gTRandom.Uniform(0, 1) < 4.5/ne->GetDiameter()*ne->GetDiameter()) {
+            // branching factor should depend on diameter
+            if (ne->GetDiameter() > 0.6 && random->Uniform(0, 1) < branchingFactor) {
               ne->SetDiameter(ne->GetDiameter()-0.0016);
-              //TODO: is ne2 creation okay?
-              // no.
-               // auto ne2 = ne->Bifurcate()[0];
-               // ne2->AddBiologyModule(RGC_dendrite_growth());
+               auto ne2 = ne->Bifurcate()[1];
+               ne2->AddBiologyModule(RGC_dendrite_growth());
             }
 
-            std::array<double, 3> random_axis={gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
+            array<double, 3> random_axis={random->Uniform(-1, 1), random->Uniform(-1, 1), random->Uniform(-1, 1)};
             auto oldDirection = Math::ScalarMult(oldDirectionWeight, ne->GetSpringAxis());
-            auto randomDirection = Math::ScalarMult(gradientWeight, Math::Normalize(gradient_RGCguide));
-            auto gradDirection = Math::ScalarMult(randomnessWeight, random_axis);
-            std::array<double, 3> newStepDirection =  Math::Add(Math::Add(oldDirection,randomDirection), gradDirection);
+            auto gradDirection = Math::ScalarMult(gradientWeight, Math::Normalize(gradient_RGCguide));
+            auto randomDirection = Math::ScalarMult(randomnessWeight, random_axis);
+            array<double, 3> newStepDirection =  Math::Add(Math::Add(oldDirection,randomDirection), gradDirection);
 
 //            ne->SetDiameter(ne->GetDiameter()-diamReducSpeed);
             //TODO: if elongation create new cylinder, transfer biologyModule module to that new cylinder. make sure to deleted old one.
 
-            // std::cout << newStepDirection[0] << " " << newStepDirection[1] << " " << newStepDirection[2] << std::endl;
+            // cout << newStepDirection[0] << " " << newStepDirection[1] << " " << newStepDirection[2] << endl;
 
+//            ne->ElongateTerminalEnd(growthSpeed, gradient_RGCguide);
             ne->ElongateTerminalEnd(growthSpeed, newStepDirection);
 
             //              direction = Matrix::Normalize(Matrix::Add(Matrix::ScalarMult(5,direction),newStepDirection));
@@ -182,7 +213,7 @@ namespace bdm {
               if (concentration>threshold_1){
                 ne->SetBeyondThreshold(false);
                 ne->SetHasToRetract(false);
-//                ne->ElongateTerminalEnd(1, {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)});
+//                ne->ElongateTerminalEnd(1, {random->Uniform(-1, 1), random->Uniform(-1, 1), random->Uniform(-1, 1)});
               }
             } // end if beyound threshold
           } // end has to retract
@@ -199,39 +230,17 @@ namespace bdm {
 
   }; // end biologyModule RGC_dendrite_growth
 
-  // 0. Define my custom cell, which extends Cell by adding an extra
-  // data member cell_type.
-  // TODO: MyCell has to extend NeuronSoma, not Cell
-  BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
-    //  BDM_SIM_OBJECT(MyCell, Cell) {
-    BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_);
 
-  public:
-    MyCellExt() {}
-
-    MyCellExt(const std::array<double, 3>& position) : Base(position) {}
-
-    void SetCellType(int t) { cell_type_[kIdx] = t; }
-    int GetCellType() const { return cell_type_[kIdx]; }
-    // This function is used by ParaView for coloring the cells by their type
-    int* GetCellTypePtr() { return cell_type_.data(); }
-
-    void SetInternalClock(int t) { internal_clock_[kIdx] = t; }
-    int GetInternalClock() const { return internal_clock_[kIdx]; }
-    int* GetInternalClockPtr() { return internal_clock_.data(); }
-
-  private:
-    vec<int> cell_type_;
-    vec<int> internal_clock_;
-  };
-
-
-  // 1a. Define behavior:
+  // Define cell behavior for mosaic formation
+  template <typename TSimulation = Simulation<>>
   struct Chemotaxis : public BaseBiologyModule {
     Chemotaxis() : BaseBiologyModule(gAllBmEvents) {}
 
     template <typename T>
     void Run(T* sim_object) {
+      auto* sim = TSimulation::GetActive();
+      auto* random = sim->GetRandom();
+
       if (sim_object->template IsSoType<MyCell>()) {
         auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
@@ -240,14 +249,14 @@ namespace bdm {
 
         // if not initialised, initialise substance diffusions
         if (!init_) {
-          dg_0_ = GetDiffusionGrid(on_diffusion);
-          dg_1_ = GetDiffusionGrid(off_diffusion);
+          dg_0_ = sim->GetDiffusionGrid("on_diffusion");
+          dg_1_ = sim->GetDiffusionGrid("off_diffusion");
           init_ = true;
         }
 
         auto& position = cell->GetPosition();
-        std::array<double, 3> diff_gradient;
-        std::array<double, 3> gradient_z;
+        array<double, 3> diff_gradient;
+        array<double, 3> gradient_z;
         double concentration=0;
         int cellClock=cell->GetInternalClock();
 
@@ -279,28 +288,30 @@ namespace bdm {
             cell->SetPosition(cell->GetPosition());
           }
           // random movement
-          //        cell->UpdatePosition({gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), 0});
+          //        cell->UpdatePosition({random->Uniform(-1, 1), random->Uniform(-1, 1), 0});
         }
 
         /* -- cell death -- */
         //      if (withCellDeath && cellClock >= 200 && cellClock < 800) {
         if (withCellDeath && cellClock >= 200) { // && cellClock >= 500 && cellClock < 1600
+          // add small random movements if tangential dispersion is off
           if (!withMovement && cellClock < 400 && concentration>=0.104725) {
-            cell->UpdatePosition({gTRandom.Uniform(-0.2, 0.2), gTRandom.Uniform(-0.2, 0.2), 0});
+            cell->UpdatePosition({random->Uniform(-0.2, 0.2), random->Uniform(-0.2, 0.2), 0});
+            cell->SetPosition(cell->GetPosition());
+          }
+          // add vertical migration as the multi layer colapse in just on layer
+          if(concentration>=0.1045) { // 104
+            cell->UpdatePosition(gradient_z);
+            //          cell->UpdatePosition(diff_gradient);
             cell->SetPosition(cell->GetPosition());
           }
           // cell death depending on homotype substance concentration
-          if (concentration >= 0.11 && gTRandom.Uniform(0, 1) < 0.1) { // die if concentration is too high; proba so all cells don't die simultaneously ; 0.1047 for already existing mosaic - 0.1048 for random position - 0.1047x for inbetween
+          // 0.11. what?
+          if (concentration >= 0.10485 && random->Uniform(0, 1) < 0.1) { // die if concentration is too high; proba so all cells don't die simultaneously ; 0.1047 for already existing mosaic - 0.1048 for random position - 0.1047x for inbetween
           cell->RemoveFromSimulation();
         }
-        // add vertical migration as the multi layer colapse in just on layer
-        if(concentration>=0.1045) { // 104
-          cell->UpdatePosition(gradient_z);
-          //          cell->UpdatePosition(diff_gradient);
-          cell->SetPosition(cell->GetPosition());
-        }
         // randomly kill ~60% cells (over 250 steps)
-        //      if (gTRandom.Uniform(0, 1) < 0.004) {
+        //      if (random->Uniform(0, 1) < 0.004) {
         //        cell->RemoveFromSimulation();
         //      }
       }
@@ -314,27 +325,27 @@ namespace bdm {
         double concentration_0 = dg_0_->GetConcentration(position);
 
         if (concentration_1 == 0 && concentration_0 == 0) { // if no substances
-          if (gTRandom.Uniform(0, 1) < 0.0001) { // so all cell types doesn't create all randomly at step 1
-          cell->SetCellType((int) gTRandom.Uniform(0, 2)); // random attribution of cell type
+          if (random->Uniform(0, 1) < 0.0001) { // so all cell types doesn't create all randomly at step 1
+          cell->SetCellType((int) random->Uniform(0, 2)); // random attribution of cell type
         }
       }
 
       //        if (concentration_1 > concentration_0 && concentration_1 > 0.000001) { // if off > on // 0.000001
       if (concentration_1 > concentration_0*4 && concentration_1 > 0.00001) {
-        if (gTRandom.Uniform(0, 1) < 0.1) { // so all cell doesn't choose their type in the same time
+        if (random->Uniform(0, 1) < 0.1) { // so all cell doesn't choose their type in the same time
         cell->SetCellType(0); // cell become on
       }
     }
 
     //        if ( concentration_0 > concentration_1 && concentration_0 > 0.000001) { // if on > off // 0.000001
     if ( concentration_0 > concentration_1*4 && concentration_0 > 0.00001) {
-      if (gTRandom.Uniform(0, 1) < 0.1) { // so cells don't choose their type in the same time
+      if (random->Uniform(0, 1) < 0.1) { // so cells don't choose their type in the same time
       cell->SetCellType(1); // cell become off
     }
   }
 } // end cell type = -1
 
-if (gTRandom.Uniform(0, 1) < 0.96) {
+if (random->Uniform(0, 1) < 0.96) {
   cell->SetInternalClock(cell->GetInternalClock()+1); // update cell internal clock
 }
 
@@ -345,24 +356,28 @@ private:
   bool init_ = false;
   DiffusionGrid* dg_0_ = nullptr;
   DiffusionGrid* dg_1_ = nullptr;
-  std::array<double, 3> gradient_0_;
-  std::array<double, 3> gradient_1_;
+  array<double, 3> gradient_0_;
+  array<double, 3> gradient_1_;
   ClassDefNV(Chemotaxis, 1);
 }; // end biologyModule Chemotaxis
 
 // 1b. Define secretion behavior:
+template <typename TSimulation = Simulation<>>
 struct SubstanceSecretion : public BaseBiologyModule {
   // Daughter cells inherit this biology module
   SubstanceSecretion() : BaseBiologyModule(gAllBmEvents) {}
 
   template <typename T>
   void Run(T* sim_object) {
+    auto* sim = TSimulation::GetActive();
+    auto* random = sim->GetRandom();
+
     if (sim_object->template IsSoType<MyCell>()) {
       auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
       if (!init_) {
-        dg_0_ = GetDiffusionGrid(on_diffusion);
-        dg_1_ = GetDiffusionGrid(off_diffusion);
+        dg_0_ = sim->GetDiffusionGrid("on_diffusion");
+        dg_1_ = sim->GetDiffusionGrid("off_diffusion");
         init_ = true;
       }
       auto& secretion_position = cell->GetPosition();
@@ -384,7 +399,11 @@ private:
 }; // end biologyModule SubstanceSecretion
 
 
-// 2. Define compile time parameter
+// TODO: add external biology modules: bioM_*
+//  enum Substances { on_substance_RGC_guide, off_substance_RGC_guide };
+enum Substances { on_diffusion, off_diffusion, on_substance_RGC_guide, off_substance_RGC_guide };
+
+// define compile time parameter
 template <typename Backend>
 struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
   using BiologyModules = Variant<Chemotaxis, SubstanceSecretion, RGC_dendrite_growth>;
@@ -393,10 +412,12 @@ struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
   using NeuriteElement = MyNeurite;
 };
 
-// my cell creator
-template <typename Function, typename TResourceManager = ResourceManager<>>
+// define my cell creator
+template <typename Function, typename TSimulation = Simulation<>>
 static void CellCreator(double min, double max, int num_cells, Function cell_builder) {
-  auto rm = TResourceManager::Get();
+  auto* sim = TSimulation::GetActive();
+  auto* rm = sim->GetResourceManager();
+  auto* random = sim->GetRandom();
 
   // Determine simulation object type which is returned by the cell_builder
   using FunctionReturnType = decltype(cell_builder({0, 0, 0}));
@@ -405,9 +426,9 @@ static void CellCreator(double min, double max, int num_cells, Function cell_bui
   container->reserve(num_cells);
 
   for (int i = 0; i < num_cells; i++) {
-    double x = gTRandom.Uniform(min+20, max-20);
-    double y = gTRandom.Uniform(min+20, max-20);
-    double z = gTRandom.Uniform(min+20, 40); //24
+    double x = random->Uniform(min+20, max-20);
+    double y = random->Uniform(min+20, max-20);
+    double z = random->Uniform(min+20, 40); //24
     auto new_simulation_object = cell_builder({x, y, z});
     container->push_back(new_simulation_object);
   }
@@ -415,14 +436,14 @@ static void CellCreator(double min, double max, int num_cells, Function cell_bui
 } // end CellCreator
 
 // position exporteur
-template <typename TResourceManager = ResourceManager<>>
+template <typename TSimulation = Simulation<>>
 inline void position_exporteur(int i) {
   ofstream positionFileOn;
   ofstream positionFileOff;
   ofstream positionFileAll;
-  std::stringstream sstmOn;
-  std::stringstream sstmOff;
-  std::stringstream sstmAll;
+  stringstream sstmOn;
+  stringstream sstmOff;
+  stringstream sstmAll;
   sstmOn << "on_t" << i << ".txt";
   sstmOff << "off_t" << i << ".txt";
   sstmAll << "all_t" << i << ".txt";
@@ -434,7 +455,8 @@ inline void position_exporteur(int i) {
   positionFileOff.open(fileNameOff);
   positionFileAll.open(fileNameAll);
 
-  auto rm = TResourceManager::Get();
+  auto* sim = TSimulation::GetActive();
+  auto* rm = sim->GetResourceManager();
   auto my_cells=rm->template Get<MyCell>();
   int numberOfCells = my_cells->size();
 
@@ -456,8 +478,8 @@ inline void position_exporteur(int i) {
 } // end position_exporteur
 
 // RI computation
-inline double computeRI(std::vector<array<double, 3>> coordList) {
-  std::vector<double> shortestDistList;
+inline double computeRI(vector<array<double, 3>> coordList) {
+  vector<double> shortestDistList;
   for (unsigned int i=0; i<coordList.size(); i++) { // for each cell of same type in the simulation
     array<double, 3> cellPosition = coordList[i];
 
@@ -491,11 +513,12 @@ inline double computeRI(std::vector<array<double, 3>> coordList) {
   return aveShortestDist/std; // return RI
 } // end computeRI
 
-template <typename TResourceManager = ResourceManager<>>
+template <typename TSimulation = Simulation<>>
 inline  double getRI(int desiredCellType) {
-  auto rm = TResourceManager::Get();
+  auto* sim = TSimulation::GetActive();
+  auto* rm = sim->GetResourceManager();
   auto my_cells=rm->template Get<MyCell>(); // get cell list
-  std::vector<array<double, 3>> coordList; // list of coordinate
+  vector<array<double, 3>> coordList; // list of coordinate
   int numberOfCells = my_cells->size();
 
   for (int cellNum=0; cellNum< numberOfCells; cellNum++) { // for each cell in simulation
@@ -510,10 +533,14 @@ inline  double getRI(int desiredCellType) {
 } //; end getRI
 
 /* -------- simulate -------- */
-template <typename TResourceManager = ResourceManager<>>
+//template <typename TResourceManager = ResourceManager<>>
+template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
-  InitializeBiodynamo(argc, argv);
-  // 3. Define initial model
+  Simulation<> simulation(argc, argv);
+  auto* rm = simulation.GetResourceManager();
+  auto* random = simulation.GetRandom();
+  auto* scheduler = simulation.GetScheduler();
+  auto* param = simulation.GetParam();
 
   // Create an artificial bounds for the simulation space
   int cubeDim= 500; //100 //500
@@ -521,59 +548,65 @@ inline int Simulate(int argc, const char** argv) {
   double cellDensity = (double) num_cells*1000000/(cubeDim*cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
-  Param::bound_space_ = true;
-  Param::min_bound_ = 0;
-  Param::max_bound_ = cubeDim+40; // cell are created with +20 to min and -20 to max. so physical cube has to be cubeDim+40
-  Param::run_mechanical_interactions_ = true;
+  param->bound_space_ = true;
+  param->min_bound_ = 0;
+  param->max_bound_ = cubeDim+40; // cell are created with +20 to min and -20 to max. so physical cube has to be cubeDim+40
+  param->run_mechanical_interactions_ = true;
 
   int mySeed=rand()%10000;
   mySeed=9784; // 9784
-  gTRandom.SetSeed(mySeed);
+  random->SetSeed(mySeed);
   cout << "modelling with seed " << mySeed << endl;
 
   // Construct num_cells/2 cells of on cells (type 0)
-  auto construct_on = [](const std::array<double, 3>& position) {
+  auto construct_on = [](const array<double, 3>& position) {
+    auto* simulation = TSimulation::GetActive();
+    auto* random = simulation->GetRandom();
     MyCell cell(position);
-    cell.SetDiameter(gTRandom.Uniform(8, 9)); // random diameter between 8 and 9
+    cell.SetDiameter(random->Uniform(8, 9)); // random diameter between 8 and 9
     cell.SetCellType(0);
     cell.SetInternalClock(0);
     cell.AddBiologyModule(SubstanceSecretion());
     cell.AddBiologyModule(Chemotaxis());
-    auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth());
-    ne->GetSoPtr()->SetHasToRetract(false);
-    ne->GetSoPtr()->SetSleepMode(false);
-    ne->GetSoPtr()->SetBeyondThreshold(false);
+    // auto ne = cell.ExtendNewNeurite({0, 0, 1});
+    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth());
+    // ne->GetSoPtr()->SetHasToRetract(false);
+    // ne->GetSoPtr()->SetSleepMode(false);
+    // ne->GetSoPtr()->SetBeyondThreshold(false);
     return cell;
   };
-  CellCreator(Param::min_bound_, Param::max_bound_, num_cells/2, construct_on); // num_cells/2
+  CellCreator(param->min_bound_, param->max_bound_, 0, construct_on); // num_cells/2
   //TODO: get actual number of on cells to check if cell creation is okay
   cout << "on cells created" << endl;
 
   // Construct num_cells/2 cells of off cells (type 1)
-  auto construct_off = [](const std::array<double, 3>& position) {
+  auto construct_off = [](const array<double, 3>& position) {
+    auto* simulation = TSimulation::GetActive();
+    auto* random = simulation->GetRandom();
     MyCell cell(position);
-    cell.SetDiameter(gTRandom.Uniform(8, 9)); // random diameter between 8 and 9
+    cell.SetDiameter(random->Uniform(8, 9)); // random diameter between 8 and 9
     cell.SetCellType(1);
     cell.SetInternalClock(0);
     cell.AddBiologyModule(SubstanceSecretion());
     cell.AddBiologyModule(Chemotaxis());
-    auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    ne->GetSoPtr()->SetDiameter(1);
-    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth());
-    ne->GetSoPtr()->SetHasToRetract(false);
-    ne->GetSoPtr()->SetSleepMode(false);
-    ne->GetSoPtr()->SetBeyondThreshold(false);
+    // auto ne = cell.ExtendNewNeurite({0, 0, 1});
+    // ne->GetSoPtr()->SetDiameter(1);
+    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth());
+    // ne->GetSoPtr()->SetHasToRetract(false);
+    // ne->GetSoPtr()->SetSleepMode(false);
+    // ne->GetSoPtr()->SetBeyondThreshold(false);
     return cell;
   };
-  CellCreator(Param::min_bound_, Param::max_bound_, num_cells/2, construct_off); // num_cells/2
+  CellCreator(param->min_bound_, param->max_bound_, 0, construct_off); // num_cells/2
   //TODO: get actual number of off cells to check if cell creation is okay
   cout << "off cells created" << endl;
 
   // construct neutral cells (type -1)
-  auto construct_nonType = [](const std::array<double, 3>& position) {
+  auto construct_nonType = [](const array<double, 3>& position) {
+    auto* simulation = TSimulation::GetActive();
+    auto* random = simulation->GetRandom();
     MyCell cell(position);
-    cell.SetDiameter(gTRandom.Uniform(8, 9));
+    cell.SetDiameter(random->Uniform(8, 9));
     cell.SetCellType(-1);
     cell.SetInternalClock(0);
     cell.AddBiologyModule(SubstanceSecretion());
@@ -585,7 +618,7 @@ inline int Simulate(int argc, const char** argv) {
     // ne->GetSoPtr()->SetBeyondThreshold(false);
     return cell;
   };
-  CellCreator(Param::min_bound_, Param::max_bound_, 0, construct_nonType); // num_cells
+  CellCreator(param->min_bound_, param->max_bound_, num_cells, construct_nonType); // num_cells
   cout << "neutral cells created" << endl;
 
   // 3. Define the substances that cells may secrete
@@ -603,25 +636,22 @@ inline int Simulate(int argc, const char** argv) {
   ModelInitializer::InitializeSubstance(off_substance_RGC_guide, "off_substance_RGC_guide", GaussianBand(80, 8, Axis::kZAxis));
 
   // set some param
-  int maxStep=20; // number of simulation steps // 1201
+  int maxStep=1201; // number of simulation steps // 1201
   bool writeOutput = true; // if you want to write file for RI and cell position
   int outputFrequence = 100; // create cell position files every outputFrequence steps
   ofstream outputFile;
 
   if (writeOutput) {
-    outputFile.open("RI_" + std::to_string(mySeed) + ".txt");
+    outputFile.open("RI_" + to_string(mySeed) + ".txt");
   }
 
   // 4. Run simulation for maxStep timesteps
-  Scheduler<> scheduler;
-
-  auto rm =TResourceManager::Get();
   auto my_cells=rm->template Get<MyCell>();
   int numberOfCells = my_cells->size();
   int numberOfCells0=0; int numberOfCells1=0;
 
   for (int i=0; i<maxStep; i++) {
-    scheduler.Simulate(1);
+    scheduler->Simulate(1);
 
     if (i%10==0){ // write RI in file
       double RIon=getRI(0);
@@ -633,7 +663,7 @@ inline int Simulate(int argc, const char** argv) {
 
       if (i%100==0){ // print
         // get cell list size
-        rm =TResourceManager::Get();
+        rm = simulation.GetResourceManager();
         my_cells = rm->template Get<MyCell>();
         numberOfCells = my_cells->size();
         numberOfCells0=0; numberOfCells1=0;
@@ -663,4 +693,4 @@ inline int Simulate(int argc, const char** argv) {
 
 } // namespace bdm
 
-#endif // MOSAIC_H_
+#endif // RETINAL_DEV_

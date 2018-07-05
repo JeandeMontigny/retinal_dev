@@ -1,3 +1,6 @@
+#[simulation]
+#bound_space = true
+
 [visualization]
 export = true
 live = true
@@ -22,4 +25,3 @@ export_interval = 1
     #
     # [[visualize_diffusion]]
     # name = "off_diffusion"
-
