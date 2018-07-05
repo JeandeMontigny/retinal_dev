@@ -22,6 +22,10 @@ namespace bdm {
   using experimental::neuroscience::NeuronSoma;
   using namespace std;
 
+  // TODO: add external biology modules: bioM_*
+  //  enum Substances { on_substance_RGC_guide, off_substance_RGC_guide };
+  enum Substances { on_diffusion, off_diffusion, on_substance_RGC_guide, off_substance_RGC_guide };
+
   // Define my custom cell MyCell, which extends Cell
   // TODO: MyCell has to extend NeuronSoma, not Cell
   BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
@@ -134,7 +138,7 @@ namespace bdm {
             if (ne->GetDiameter() > 0.6 && random->Uniform(0, 1) < branchingFactor) {
               ne->SetDiameter(ne->GetDiameter()-0.0016);
                auto ne2 = ne->Bifurcate()[1];
-               ne2->AddBiologyModule(RGC_dendrite_growth());
+               ne2->AddBiologyModule(RGC_dendrite_growth<>());
             }
 
             array<double, 3> random_axis={random->Uniform(-1, 1), random->Uniform(-1, 1), random->Uniform(-1, 1)};
@@ -195,7 +199,7 @@ namespace bdm {
               ne->SetHasToRetract(false);
               ne->SetSleepMode(true);
               // TODO: remove biologyModule for this neurite
-              // ne->RemoveLocalBiologyModule(RGC_dendrite_growth());
+              // ne->RemoveLocalBiologyModule(RGC_dendrite_growth<>());
             }
 
             // if retraction due to threshold
@@ -249,8 +253,9 @@ namespace bdm {
 
         // if not initialised, initialise substance diffusions
         if (!init_) {
-          dg_0_ = sim->GetDiffusionGrid("on_diffusion");
-          dg_1_ = sim->GetDiffusionGrid("off_diffusion");
+          auto* rm = sim->GetResourceManager();
+          dg_0_ = rm->GetDiffusionGrid(Substances::on_diffusion);
+          dg_1_ = rm->GetDiffusionGrid(Substances::off_diffusion);
           init_ = true;
         }
 
@@ -376,8 +381,9 @@ struct SubstanceSecretion : public BaseBiologyModule {
       auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
       if (!init_) {
-        dg_0_ = sim->GetDiffusionGrid("on_diffusion");
-        dg_1_ = sim->GetDiffusionGrid("off_diffusion");
+        auto* rm = sim->GetResourceManager();
+        dg_0_ = rm->GetDiffusionGrid(Substances::on_diffusion);
+        dg_1_ = rm->GetDiffusionGrid(Substances::off_diffusion);
         init_ = true;
       }
       auto& secretion_position = cell->GetPosition();
@@ -398,15 +404,10 @@ private:
   ClassDefNV(SubstanceSecretion, 1);
 }; // end biologyModule SubstanceSecretion
 
-
-// TODO: add external biology modules: bioM_*
-//  enum Substances { on_substance_RGC_guide, off_substance_RGC_guide };
-enum Substances { on_diffusion, off_diffusion, on_substance_RGC_guide, off_substance_RGC_guide };
-
 // define compile time parameter
 template <typename Backend>
 struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
-  using BiologyModules = Variant<Chemotaxis, SubstanceSecretion, RGC_dendrite_growth>;
+  using BiologyModules = Variant<Chemotaxis<>, SubstanceSecretion<>, RGC_dendrite_growth<>>;
   using AtomicTypes = VariadicTypedef<MyCell, MyNeurite>;
   using NeuronSoma = MyCell;
   using NeuriteElement = MyNeurite;
@@ -566,10 +567,10 @@ inline int Simulate(int argc, const char** argv) {
     cell.SetDiameter(random->Uniform(8, 9)); // random diameter between 8 and 9
     cell.SetCellType(0);
     cell.SetInternalClock(0);
-    cell.AddBiologyModule(SubstanceSecretion());
-    cell.AddBiologyModule(Chemotaxis());
+    cell.AddBiologyModule(SubstanceSecretion<>());
+    cell.AddBiologyModule(Chemotaxis<>());
     // auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth());
+    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
     // ne->GetSoPtr()->SetHasToRetract(false);
     // ne->GetSoPtr()->SetSleepMode(false);
     // ne->GetSoPtr()->SetBeyondThreshold(false);
@@ -587,11 +588,11 @@ inline int Simulate(int argc, const char** argv) {
     cell.SetDiameter(random->Uniform(8, 9)); // random diameter between 8 and 9
     cell.SetCellType(1);
     cell.SetInternalClock(0);
-    cell.AddBiologyModule(SubstanceSecretion());
-    cell.AddBiologyModule(Chemotaxis());
+    cell.AddBiologyModule(SubstanceSecretion<>());
+    cell.AddBiologyModule(Chemotaxis<>());
     // auto ne = cell.ExtendNewNeurite({0, 0, 1});
     // ne->GetSoPtr()->SetDiameter(1);
-    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth());
+    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
     // ne->GetSoPtr()->SetHasToRetract(false);
     // ne->GetSoPtr()->SetSleepMode(false);
     // ne->GetSoPtr()->SetBeyondThreshold(false);
@@ -609,10 +610,10 @@ inline int Simulate(int argc, const char** argv) {
     cell.SetDiameter(random->Uniform(8, 9));
     cell.SetCellType(-1);
     cell.SetInternalClock(0);
-    cell.AddBiologyModule(SubstanceSecretion());
-    cell.AddBiologyModule(Chemotaxis());
+    cell.AddBiologyModule(SubstanceSecretion<>());
+    cell.AddBiologyModule(Chemotaxis<>());
     //auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth());
+    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
     // ne->GetSoPtr()->SetHasToRetract(false);
     // ne->GetSoPtr()->SetSleepMode(false);
     // ne->GetSoPtr()->SetBeyondThreshold(false);
