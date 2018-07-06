@@ -126,7 +126,7 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
       auto ne = sim_objectNe.GetSoPtr();
       if (ne->IsTerminal() && !ne->GetSleepMode() &&
           ne->GetNeuronSomaOfNeurite()->GetCellType() != -1) {
-        if (!ne->GetHasToRetract()) {  // if neurite is not neutral
+        if (!ne->GetHasToRetract()) {  // if neurite does not have to retract
 
           auto& positionNeurite = ne->GetPosition();
 
@@ -432,7 +432,6 @@ struct SubstanceSecretion : public BaseBiologyModule {
   template <typename T>
   void Run(T* sim_object) {
     auto* sim = TSimulation::GetActive();
-    auto* random = sim->GetRandom();
 
     if (sim_object->template IsSoType<MyCell>()) {
       auto&& cell = sim_object->template ReinterpretCast<MyCell>();
@@ -641,14 +640,14 @@ inline int Simulate(int argc, const char** argv) {
     cell.SetInternalClock(0);
     cell.AddBiologyModule(SubstanceSecretion<>());
     cell.AddBiologyModule(Chemotaxis<>());
-    // auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
-    // ne->GetSoPtr()->SetHasToRetract(false);
-    // ne->GetSoPtr()->SetSleepMode(false);
-    // ne->GetSoPtr()->SetBeyondThreshold(false);
+    auto ne = cell.ExtendNewNeurite({0, 0, 1});
+    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
+    ne->GetSoPtr()->SetHasToRetract(false);
+    ne->GetSoPtr()->SetSleepMode(false);
+    ne->GetSoPtr()->SetBeyondThreshold(false);
     return cell;
   };
-  CellCreator(param->min_bound_, param->max_bound_, 0,
+  CellCreator(param->min_bound_, param->max_bound_, num_cells/2,
               construct_on);  // num_cells/2
   // TODO: get actual number of on cells to check if cell creation is okay
   cout << "on cells created" << endl;
@@ -663,15 +662,15 @@ inline int Simulate(int argc, const char** argv) {
     cell.SetInternalClock(0);
     cell.AddBiologyModule(SubstanceSecretion<>());
     cell.AddBiologyModule(Chemotaxis<>());
-    // auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    // ne->GetSoPtr()->SetDiameter(1);
-    // ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
-    // ne->GetSoPtr()->SetHasToRetract(false);
-    // ne->GetSoPtr()->SetSleepMode(false);
-    // ne->GetSoPtr()->SetBeyondThreshold(false);
+    auto ne = cell.ExtendNewNeurite({0, 0, 1});
+    ne->GetSoPtr()->SetDiameter(1);
+    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
+    ne->GetSoPtr()->SetHasToRetract(false);
+    ne->GetSoPtr()->SetSleepMode(false);
+    ne->GetSoPtr()->SetBeyondThreshold(false);
     return cell;
   };
-  CellCreator(param->min_bound_, param->max_bound_, 0,
+  CellCreator(param->min_bound_, param->max_bound_, num_cells/2,
               construct_off);  // num_cells/2
   // TODO: get actual number of off cells to check if cell creation is okay
   cout << "off cells created" << endl;
@@ -693,7 +692,7 @@ inline int Simulate(int argc, const char** argv) {
     // ne->GetSoPtr()->SetBeyondThreshold(false);
     return cell;
   };
-  CellCreator(param->min_bound_, param->max_bound_, num_cells,
+  CellCreator(param->min_bound_, param->max_bound_, 0,
               construct_nonType);  // num_cells
   cout << "neutral cells created" << endl;
 
@@ -720,7 +719,7 @@ inline int Simulate(int argc, const char** argv) {
                                         GaussianBand(80, 8, Axis::kZAxis));
 
   // set some param
-  int maxStep = 1201;  // number of simulation steps // 1201
+  int maxStep = 12;  // number of simulation steps // 1201
   bool writeOutput =
       true;  // if you want to write file for RI and cell position
   int outputFrequence =
