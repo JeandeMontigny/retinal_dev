@@ -61,8 +61,8 @@ struct Chemotaxis : public BaseBiologyModule {
     if (sim_object->template IsSoType<MyCell>()) {
       auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
-      bool withCellDeath = true;
-      bool withMovement = true;
+      bool withCellDeath = false;
+      bool withMovement = false;
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -149,40 +149,33 @@ struct Chemotaxis : public BaseBiologyModule {
         dg_0_->GetGradient(position, &gradient_0_);
         double concentration_0 = dg_0_->GetConcentration(position);
 
-        if (concentration_1 == 0 && concentration_0 == 0) {  // if no substances
-          if (random->Uniform(0, 1) < 0.0001) {  // so all cell types doesn't
-                                                 // create all randomly at step
-                                                 // 1
-            cell->SetCellType(
-                (int)random->Uniform(0, 2));  // random attribution of cell type
-          }
+        // if no substances
+        // random so all cell types doesn't create all randomly at step 1
+        // if (concentration_1 == 0 && concentration_0 == 0 && random->Uniform(0, 1) < 0.0001) {
+        //   // random attribution of a cell type
+        //   cell->SetCellType((int)random->Uniform(0, 2));
+        // }
+
+        // if [Off substance] > [On substance]
+        // random so all cell doesn't choose their type in the same time
+        if (concentration_1 > 1e-6 && concentration_1 > concentration_0
+          && random->Uniform(0, 1) < 0.05) {
+            cell->SetCellType(0); // cell become on
         }
 
-        //        if (concentration_1 > concentration_0 && concentration_1 >
-        //        0.000001) { // if off > on // 0.000001
-        if (concentration_1 > concentration_0 * 4 &&
-            concentration_1 > 0.00001) {
-          if (random->Uniform(0, 1) <
-              0.1) {  // so all cell doesn't choose their type in the same time
-            cell->SetCellType(0);  // cell become on
-          }
-        }
-
-        //        if ( concentration_0 > concentration_1 && concentration_0 >
-        //        0.000001) { // if on > off // 0.000001
-        if (concentration_0 > concentration_1 * 4 &&
-            concentration_0 > 0.00001) {
-          if (random->Uniform(0, 1) <
-              0.1) {  // so cells don't choose their type in the same time
-            cell->SetCellType(1);  // cell become off
-          }
+        // if [On substance] > [Off substance]
+        // random so cells don't choose their type in the same time
+        if (concentration_0 > 1e-6 && concentration_0 > concentration_1
+          && random->Uniform(0, 1) < 0.05) {
+            cell->SetCellType(1); // cell become off
         }
       }  // end cell type = -1
 
+      // probability to increase internal clock
       if (random->Uniform(0, 1) < 0.96) {
-        cell->SetInternalClock(cell->GetInternalClock() +
-                               1);  // update cell internal clock
-      }
+        // update cell internal clock
+        cell->SetInternalClock(cell->GetInternalClock() + 1);
+      } // end update cell internal clock
 
     }  // end of if neuron soma
   }    // end Run()
@@ -385,16 +378,15 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // Create an artificial bounds for the simulation space
-  int cubeDim = 500;     // 100 //500
-  int num_cells = 4400;  // 55 //1250 // 2500
-  double cellDensity = (double)num_cells * 1000000 / (cubeDim * cubeDim);
+  int cubeDim = 250; //500
+  int num_cells = 1100; // 4400
+  double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
   param->bound_space_ = true;
   param->min_bound_ = 0;
-  param->max_bound_ = cubeDim + 40;  // cell are created with +20 to min and -20
-                                     // to max. so physical cube has to be
-                                     // cubeDim+40
+  // cell are created with +20 to min and -20 to max. so physical cube has to be cubeDim+40
+  param->max_bound_ = cubeDim + 40;
   param->run_mechanical_interactions_ = true;
 
   int mySeed = rand() % 10000;
@@ -414,8 +406,7 @@ inline int Simulate(int argc, const char** argv) {
     cell.AddBiologyModule(Chemotaxis<>());
     return cell;
   };
-  CellCreator(param->min_bound_, param->max_bound_, 0,
-              construct_on);  // num_cells/2
+  CellCreator(param->min_bound_, param->max_bound_, 1, construct_on);  // num_cells/2
   // TODO: get actual number of on cells to check if cell creation is okay
   cout << "on cells created" << endl;
 
@@ -431,8 +422,7 @@ inline int Simulate(int argc, const char** argv) {
     cell.AddBiologyModule(Chemotaxis<>());
     return cell;
   };
-  CellCreator(param->min_bound_, param->max_bound_, 0,
-              construct_off);  // num_cells/2
+  CellCreator(param->min_bound_, param->max_bound_, 1, construct_off);  // num_cells/2
   // TODO: get actual number of off cells to check if cell creation is okay
   cout << "off cells created" << endl;
 
@@ -448,20 +438,22 @@ inline int Simulate(int argc, const char** argv) {
     cell.AddBiologyModule(Chemotaxis<>());
     return cell;
   };
-  CellCreator(param->min_bound_, param->max_bound_, num_cells,
-              construct_nonType);  // num_cells
+  CellCreator(param->min_bound_, param->max_bound_, num_cells-2, construct_nonType);  // num_cells
   cout << "neutral cells created" << endl;
 
   // 3. Define the substances that cells may secrete
   // Order: substance_name, diffusion_coefficient, decay_constant, resolution
-  ModelInitializer::DefineSubstance(0, "on_diffusion", 1, 0.5, 2);  // 1, 0.5, 2
-  ModelInitializer::DefineSubstance(1, "off_diffusion", 1, 0.5, 2);  // 1, 0.5, 2
+  // if diffusion_coefficient is low, diffusion distance is short
+  // if decay_constant is high, diffusion distance is short
+  // resolution is number of point in one domaine dimension // 0.2, 0.1
+  ModelInitializer::DefineSubstance(0, "on_diffusion", 0.2, 0.1, param->max_bound_);
+  ModelInitializer::DefineSubstance(1, "off_diffusion", 0.2, 0.1, param->max_bound_);
 
   // set some param
   // number of simulation steps // 1201
-  int maxStep = 1201;
+  int maxStep = 800;
   // if you want to write file for RI and cell position
-  bool writeOutput = true;
+  bool writeOutput = false;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
   ofstream outputFile;
@@ -487,30 +479,57 @@ inline int Simulate(int argc, const char** argv) {
         outputFile << RIon << " " << RIoff << "\n";
       }
 
-      if (i % 100 == 0) {  // print
-        // get cell list size
-        rm = simulation.GetResourceManager();
-        my_cells = rm->template Get<MyCell>();
-        numberOfCells = my_cells->size();
-        numberOfCells0 = 0;
-        numberOfCells1 = 0;
+      // get cell list size
+      rm = simulation.GetResourceManager();
+      my_cells = rm->template Get<MyCell>();
+      numberOfCells = my_cells->size();
+      numberOfCells0 = 0;
+      numberOfCells1 = 0;
 
-        for (int cellNum = 0; cellNum < numberOfCells;
-             cellNum++) {  // for each cell in simulation
-          auto thisCellType = (*my_cells)[cellNum].GetCellType();
-          if (thisCellType == 0) {
-            numberOfCells0++;
-          } else if (thisCellType == 1) {
-            numberOfCells1++;
-          }
+      for (int cellNum = 0; cellNum < numberOfCells;
+           cellNum++) {  // for each cell in simulation
+        auto thisCellType = (*my_cells)[cellNum].GetCellType();
+        if (thisCellType == 0) {
+          numberOfCells0++;
+        } else if (thisCellType == 1) {
+          numberOfCells1++;
         }
-        cout << numberOfCells << " cells in simulation: "
-             << (1 - ((double)numberOfCells / num_cells)) * 100
-             << "% of cell death\n"
-             << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
-             << " cells are type 1 (off)" << endl;
-        cout << "RI on: " << RIon << " ; RI off: " << RIoff
-             << " ; mean: " << (RIon + RIoff) / 2 << endl;
+      }
+      cout << "step " << i << " out of " << maxStep << "\n"
+           << numberOfCells << " cells in simulation: "
+           << (1 - ((double)numberOfCells / num_cells)) * 100
+           << "% of cell death\n"
+           << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
+           << " cells are type 1 (off)" << endl;
+      cout << "RI on: " << RIon << " ; RI off: " << RIoff
+           << " ; mean: " << (RIon + RIoff) / 2 << endl;
+
+
+      if (i % 100 == 0) {  // print
+        // // get cell list size
+        // rm = simulation.GetResourceManager();
+        // my_cells = rm->template Get<MyCell>();
+        // numberOfCells = my_cells->size();
+        // numberOfCells0 = 0;
+        // numberOfCells1 = 0;
+        //
+        // for (int cellNum = 0; cellNum < numberOfCells;
+        //      cellNum++) {  // for each cell in simulation
+        //   auto thisCellType = (*my_cells)[cellNum].GetCellType();
+        //   if (thisCellType == 0) {
+        //     numberOfCells0++;
+        //   } else if (thisCellType == 1) {
+        //     numberOfCells1++;
+        //   }
+        // }
+        // cout << "\nstep " << i << " out of " << maxStep << "\n"
+        //      << numberOfCells << " cells in simulation: "
+        //      << (1 - ((double)numberOfCells / num_cells)) * 100
+        //      << "% of cell death\n"
+        //      << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
+        //      << " cells are type 1 (off)" << endl;
+        // cout << "RI on: " << RIon << " ; RI off: " << RIoff
+        //      << " ; mean: " << (RIon + RIoff) / 2 << endl;
       }
     }
 
