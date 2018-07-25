@@ -158,15 +158,15 @@ struct Chemotaxis : public BaseBiologyModule {
 
         // if [Off substance] > [On substance]
         // random so all cell doesn't choose their type in the same time
-        if (concentration_1 > 1e-6 && concentration_1 > concentration_0
-          && random->Uniform(0, 1) < 0.05) {
+        if (concentration_1 > 1e-10 && concentration_1 > concentration_0
+          && random->Uniform(0, 1) < 0.1) {
             cell->SetCellType(0); // cell become on
         }
 
         // if [On substance] > [Off substance]
         // random so cells don't choose their type in the same time
-        if (concentration_0 > 1e-6 && concentration_0 > concentration_1
-          && random->Uniform(0, 1) < 0.05) {
+        if (concentration_0 > 1e-10 && concentration_0 > concentration_1
+          && random->Uniform(0, 1) < 0.1) {
             cell->SetCellType(1); // cell become off
         }
       }  // end cell type = -1
@@ -446,14 +446,14 @@ inline int Simulate(int argc, const char** argv) {
   // if diffusion_coefficient is low, diffusion distance is short
   // if decay_constant is high, diffusion distance is short
   // resolution is number of point in one domaine dimension // 0.2, 0.1
-  ModelInitializer::DefineSubstance(0, "on_diffusion", 0.2, 0.1, param->max_bound_);
-  ModelInitializer::DefineSubstance(1, "off_diffusion", 0.2, 0.1, param->max_bound_);
+  ModelInitializer::DefineSubstance(0, "on_diffusion", 0.02, 0.01, param->max_bound_);
+  ModelInitializer::DefineSubstance(1, "off_diffusion", 0.02, 0.01, param->max_bound_);
 
   // set some param
   // number of simulation steps // 1201
-  int maxStep = 800;
+  int maxStep = 2000;
   // if you want to write file for RI and cell position
-  bool writeOutput = false;
+  bool writeOutput = true;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
   ofstream outputFile;
