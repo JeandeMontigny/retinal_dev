@@ -376,14 +376,14 @@ inline int Simulate(int argc, const char** argv) {
   double diffusionCoef = 0.0;
   double decayConst = 0.0;
 
-  for (int eachDiffus = 0; eachDiffus < 10; eachDiffus++) {
-
-    decayConst = 0;
-    diffusionCoef += 0.01;
-
-    for (int eachDecay = 0; eachDecay < 10; eachDecay++) {
-
-      decayConst += 0.01;
+  // for (int eachDiffus = 0; eachDiffus < 10; eachDiffus++) {
+  //
+  //   decayConst = 0;
+  //   diffusionCoef += 0.01;
+  //
+  //   for (int eachDecay = 0; eachDecay < 10; eachDecay++) {
+  //
+  //     decayConst += 0.01;
 
       auto simulation = new Simulation<>(argc, argv);
       simulation->Activate();
@@ -414,20 +414,6 @@ inline int Simulate(int argc, const char** argv) {
       cell0.AddBiologyModule(Chemotaxis<>());
       cells->push_back(cell0);
 
-      MyCell cell1({20,25,25});
-      cell1.SetDiameter(8);
-      cell1.SetCellType(-1);
-      cell1.SetInternalClock(0);
-      cell1.AddBiologyModule(Chemotaxis<>());
-      cells->push_back(cell1);
-
-      MyCell cell2({30,50,50});
-      cell2.SetDiameter(8);
-      cell2.SetCellType(-1);
-      cell2.SetInternalClock(0);
-      cell2.AddBiologyModule(Chemotaxis<>());
-      cells->push_back(cell2);
-
       cells->Commit();
 
       // 3. Define the substances that cells may secrete
@@ -435,12 +421,12 @@ inline int Simulate(int argc, const char** argv) {
       // if diffusion_coefficient is low, diffusion distance is short
       // if decay_constant is high, diffusion distance is short
       // resolution is number of point in one domaine dimension
-      ModelInitializer::DefineSubstance(0, "on_diffusion", diffusionCoef, decayConst, param->max_bound_);  // 0.5, 0.1
+      ModelInitializer::DefineSubstance(0, "on_diffusion", 0.05, 0.01, param->max_bound_);  // 0.5, 0.1
       ModelInitializer::DefineSubstance(1, "off_diffusion", 1, 0.5, param->max_bound_);  // 0.5, 0.1
 
       // set some param
       // number of simulation steps // 1201
-      int maxStep = 1000;
+      int maxStep = 500;
       // if you want to write file for RI and cell position
       // create cell position files every outputFrequence steps
       ofstream outputFile;
@@ -452,9 +438,12 @@ inline int Simulate(int argc, const char** argv) {
       for (int i = 0; i < maxStep; i++) {
         scheduler->Simulate(1);
 
-        if (i % 10 == 0) {  // write RI in file
-          outputFile << dg_0_->GetConcentration(cell1.GetPosition()) << " " << dg_0_->GetConcentration(cell2.GetPosition()) << "\n";
-        }
+          outputFile << dg_0_->GetConcentration({10,25,25}) << " "
+          << dg_0_->GetConcentration({12,25,25}) << " "
+          << dg_0_->GetConcentration({14,25,25}) << " "
+          << dg_0_->GetConcentration({16,25,25}) << " "
+          << dg_0_->GetConcentration({18,25,25}) << " "
+          << dg_0_->GetConcentration({20,25,25}) << "\n";
 
       } // end for i to maxStep
       outputFile.close();
@@ -463,8 +452,8 @@ inline int Simulate(int argc, const char** argv) {
 
       delete simulation;
 
-    } // end for eachDecay
-  } // end eachDiffus
+  //   } // end for eachDecay
+  // } // end eachDiffus
 
   return 0;
 
