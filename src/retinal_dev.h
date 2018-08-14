@@ -60,7 +60,7 @@ struct Chemotaxis : public BaseBiologyModule {
       auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
       bool withCellDeath = true; // run cell death mechanism
-      bool withMovement = false; // run tangential migration
+      bool withMovement = true; // run tangential migration
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -106,18 +106,17 @@ struct Chemotaxis : public BaseBiologyModule {
       }
 
       /* -- cell movement -- */
-      // TODO: tuning
       if (withMovement && cellClock >= 400) {
         // cell movement based on homotype substance gradient
         // 0. with cell death - 0. without
-        // 101 too much - 1015 not enough
-        if (concentration >= 0.101) {
+        // 1010075 too much - 1010076 not enough
+        if (concentration >= 0.1010076) {
           cell->UpdatePosition(diff_gradient);
         }
       } // end tangential migration
 
       /* -- cell death -- */
-      if (withCellDeath && cellClock >= 400) {
+      if (withCellDeath && cellClock >= 400 && cellClock < 2000) {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
@@ -372,7 +371,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 1200;
+  int maxStep = 2000;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400;
