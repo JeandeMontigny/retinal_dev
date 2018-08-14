@@ -101,6 +101,9 @@ struct Chemotaxis : public BaseBiologyModule {
 
       // add small random movements
       cell->UpdatePosition({random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), 0});
+      if (cell->GetDiameter() < 15 && random->Uniform(0, 1) < 0.01) {
+        cell->ChangeVolume(0.1);
+      }
 
       /* -- cell movement -- */
       // TODO: tuning
@@ -111,9 +114,6 @@ struct Chemotaxis : public BaseBiologyModule {
         if (concentration >= 0.101) {
           cell->UpdatePosition(diff_gradient);
         }
-        // random movement
-        //        cell->UpdatePosition({random->Uniform(-1, 1),
-        //        random->Uniform(-1, 1), 0});
       } // end tangential migration
 
       /* -- cell death -- */
@@ -121,7 +121,7 @@ struct Chemotaxis : public BaseBiologyModule {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        // with cell fate: 0.1077254 - 0.10772548
+        // with cell fate: 0.11
         // with cell movement:
         // with cell fate and cell movement:
         if (concentration >= 0.11 && random->Uniform(0, 1) < 0.1) {
@@ -134,12 +134,7 @@ struct Chemotaxis : public BaseBiologyModule {
           }
         };
         auto* grid = sim->GetGrid();
-        grid->ForEachNeighborWithinRadius(killNeighbor, *this, grid->GetSoHandles(), 1);
-
-        // randomly kill ~60% cells (over 250 steps)
-        //      if (random->Uniform(0, 1) < 0.004) {
-        //        cell->RemoveFromSimulation();
-        //      }
+        grid->ForEachNeighborWithinRadius(killNeighbor, cell, cell->GetSoHandle(), cell->GetDiameter()*1.5);
       } // end cell death
 
       /* -- cell fate -- */
