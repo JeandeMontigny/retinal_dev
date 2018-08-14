@@ -109,8 +109,8 @@ struct Chemotaxis : public BaseBiologyModule {
       if (withMovement && cellClock >= 400) {
         // cell movement based on homotype substance gradient
         // 0. with cell death - 0. without
-        // 1010075 too much - 1010076 not enough
-        if (concentration >= 0.1010076) {
+        // 10100755032 too much - 1010075504 not enough
+        if (concentration >= 0.10100755034) {
           cell->UpdatePosition(diff_gradient);
         }
       } // end tangential migration
