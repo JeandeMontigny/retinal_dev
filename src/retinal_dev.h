@@ -81,7 +81,7 @@ struct Chemotaxis : public BaseBiologyModule {
       // if cell is type 1, concentration and gradient are substance 1
       if (cell->GetCellType() == 1) {
         dg_1_->GetGradient(position, &gradient_1_);
-        gradient_z = Math::ScalarMult(0.1, gradient_1_);
+        gradient_z = Math::ScalarMult(0.2, gradient_1_);
         gradient_z[0] = 0;
         gradient_z[1] = 0;
         diff_gradient = Math::ScalarMult(-0.1, gradient_1_);
@@ -91,7 +91,7 @@ struct Chemotaxis : public BaseBiologyModule {
       // if cell is type 0, concentration and gradient are substance 0
       if (cell->GetCellType() == 0) {
         dg_0_->GetGradient(position, &gradient_0_);
-        gradient_z = Math::ScalarMult(0.1, gradient_0_);
+        gradient_z = Math::ScalarMult(0.2, gradient_0_);
         gradient_z[0] = 0;
         gradient_z[1] = 0;
         diff_gradient = Math::ScalarMult(-0.1, gradient_0_);
@@ -99,13 +99,14 @@ struct Chemotaxis : public BaseBiologyModule {
         concentration = dg_0_->GetConcentration(position);
       }
 
-      // add vertical migration as the multi layer colapse in just on layer
-      cell->UpdatePosition({random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), gradient_z[2]});
+      // add small random movements
+      cell->UpdatePosition({random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), 0});
 
       /* -- cell movement -- */
+      // TODO: tuning
       if (withMovement && cellClock >= 400) {
         // cell movement based on homotype substance gradient
-        // 0. for high density - 0. for normal density // 0. for cell death with layer collapse
+        // 0. with cell death - 0. without
         // 101 too much - 1015 not enough
         if (concentration >= 0.101) {
           cell->UpdatePosition(diff_gradient);
@@ -117,21 +118,23 @@ struct Chemotaxis : public BaseBiologyModule {
 
       /* -- cell death -- */
       if (withCellDeath && cellClock >= 400) {
+        // add vertical migration as the multi layer colapse in just on layer
+        cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        // randomly distributed cells:
-        // with cell fate: 0.12
-        // 1077254 - 10772547
+        // with cell fate: 0.1077254 - 0.10772548
+        // with cell movement:
+        // with cell fate and cell movement:
         if (concentration >= 0.11 && random->Uniform(0, 1) < 0.1) {
           cell->RemoveFromSimulation();
         }
-        // TODO: add lambda for cells in contact
-        // auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
-        //   if (random->Uniform(0, 1) < 0.2) {
-        //     neighbor->RemoveFromSimulation();
-        //   }
-        // };
-        // auto* grid = sim->GetGrid();
-        // grid->ForEachNeighborWithinRadius(killNeighbor, *this, grid->GetSoHandles(), 1);
+
+        auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
+          if (random->Uniform(0, 1) < 0.2) {
+            neighbor->RemoveFromSimulation();
+          }
+        };
+        auto* grid = sim->GetGrid();
+        grid->ForEachNeighborWithinRadius(killNeighbor, *this, grid->GetSoHandles(), 1);
 
         // randomly kill ~60% cells (over 250 steps)
         //      if (random->Uniform(0, 1) < 0.004) {
@@ -140,7 +143,6 @@ struct Chemotaxis : public BaseBiologyModule {
       } // end cell death
 
       /* -- cell fate -- */
-      // TODO: reafine
       // cell type attribution depending on concentrations
       if (cell->GetCellType() == -1) {  // if cell type is not on or off
         dg_1_->GetGradient(position, &gradient_1_);
@@ -155,13 +157,13 @@ struct Chemotaxis : public BaseBiologyModule {
         }
         // if [Off substance] > [On substance] - 1e-8 for diffusion = 0.02
         // random so all cell doesn't choose their type in the same time
-        if (concentration_1 > 1e-6 && concentration_1 > concentration_0
+        if (concentration_1 > 1e-8 && concentration_1 > concentration_0
           && random->Uniform(0, 1) < 0.1) {
             cell->SetCellType(0); // cell become on
         }
         // if [On substance] > [Off substance]
         // random so cells don't choose their type in the same time
-        if (concentration_0 > 1e-6 && concentration_0 > concentration_1
+        if (concentration_0 > 1e-8 && concentration_0 > concentration_1
           && random->Uniform(0, 1) < 0.1) {
             cell->SetCellType(1); // cell become off
         }
@@ -374,11 +376,11 @@ inline int Simulate(int argc, const char** argv) {
   auto* scheduler = simulation.GetScheduler();
   auto* param = simulation.GetParam();
 
-  // number of simulation steps // 1201
-  int maxStep = 1200; // 2500
+  // number of simulation steps
+  int maxStep = 1200;
   // Create an artificial bounds for the simulation space
-  int cubeDim = 500; //500
-  int num_cells = 4400; // 4400
+  int cubeDim = 500;
+  int num_cells = 4400;
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
@@ -443,9 +445,8 @@ inline int Simulate(int argc, const char** argv) {
   // if diffusion_coefficient is low, diffusion distance is short
   // if decay_constant is high, diffusion distance is short
   // resolution is number of point in one domaine dimension
-  // TODO: may need to change params
-  ModelInitializer::DefineSubstance(0, "on_diffusion", 0.5, 0.99, 40);
-  ModelInitializer::DefineSubstance(1, "off_diffusion", 0.5, 0.99, 40);
+  ModelInitializer::DefineSubstance(0, "on_diffusion", 0.05, 0.99, param->max_bound_/10);
+  ModelInitializer::DefineSubstance(1, "off_diffusion", 0.05, 0.99, param->max_bound_/10);
 
   // set write output param
   // if you want to write file for RI and cell position
