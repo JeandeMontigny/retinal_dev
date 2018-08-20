@@ -7,8 +7,8 @@
 #include "model_initializer.h"
 
 namespace bdm {
-// cell type: 0=on; 1=off; -1=not attributed yet
-// setprecision (15) <<
+// cell type: 0=on; 1=off; -1=not differentiated yet
+// std::cout << setprecision (15) <<
 
 /* TODO
 - other comparison needed. This is not just one mosaic, but two. have to take
@@ -23,9 +23,8 @@ using namespace std;
 // TODO: add external biology modules: bioM_*
   enum Substances { on_substance_RGC_guide, off_substance_RGC_guide };
 
-// Define my custom cell MyCell, which extends Cell
+// Define my custom cell MyCell extending Cell
 BDM_SIM_OBJECT(MyCell, Cell) {
-  //  BDM_SIM_OBJECT(MyCell, Cell) {
   BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_);
 
  public:
@@ -40,7 +39,6 @@ BDM_SIM_OBJECT(MyCell, Cell) {
 
   void SetInternalClock(int t) { internal_clock_[kIdx] = t; }
   int GetInternalClock() const { return internal_clock_[kIdx]; }
-  int* GetInternalClockPtr() { return internal_clock_.data(); }
 
  private:
   vec<int> cell_type_;
@@ -56,13 +54,14 @@ struct Chemotaxis : public BaseBiologyModule {
   template <typename T>
   void Run(T* sim_object) {
     auto* sim = TSimulation::GetActive();
+    auto* rm = sim->GetResourceManager();
     auto* random = sim->GetRandom();
 
     if (sim_object->template IsSoType<MyCell>()) {
       auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
-      bool withCellDeath = false;
-      bool withMovement = false;
+      bool withCellDeath = true; // run cell death mechanism
+      bool withMovement = true; // run tangential migration
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -73,27 +72,27 @@ struct Chemotaxis : public BaseBiologyModule {
       }
 
       auto& position = cell->GetPosition();
+      array<double, 3> gradient_0_;
+      array<double, 3> gradient_1_;
       array<double, 3> diff_gradient;
       array<double, 3> gradient_z;
       double concentration = 0;
       int cellClock = cell->GetInternalClock();
 
-      // if cell is type 1, concentration and gradient are the one of substance
-      // 1
+      // if cell is type 1, concentration and gradient are substance 1
       if (cell->GetCellType() == 1) {
         dg_1_->GetGradient(position, &gradient_1_);
-        gradient_z = Math::ScalarMult(0.08, gradient_1_);
+        gradient_z = Math::ScalarMult(0.2, gradient_1_);
         gradient_z[0] = 0;
         gradient_z[1] = 0;
         diff_gradient = Math::ScalarMult(-0.1, gradient_1_);
         diff_gradient[2] = 0;
         concentration = dg_1_->GetConcentration(position);
       }
-      // else if cell is type 2, concentration and gradient are the one of
-      // substance 2
+      // if cell is type 0, concentration and gradient are substance 0
       if (cell->GetCellType() == 0) {
         dg_0_->GetGradient(position, &gradient_0_);
-        gradient_z = Math::ScalarMult(0.08, gradient_0_);
+        gradient_z = Math::ScalarMult(0.2, gradient_0_);
         gradient_z[0] = 0;
         gradient_z[1] = 0;
         diff_gradient = Math::ScalarMult(-0.1, gradient_0_);
@@ -101,45 +100,45 @@ struct Chemotaxis : public BaseBiologyModule {
         concentration = dg_0_->GetConcentration(position);
       }
 
-      /* -- cell movement -- */
-      if (withMovement && cellClock >= 200) {
-        // cell movement based on homotype substance gradient
-        // 0. for high density - 0. for normal density // 0. for cell death with layer collapse
-        if (concentration >= 0.10475) {
-          cell->UpdatePosition(diff_gradient);
-          cell->UpdatePosition(gradient_z);
-          cell->SetPosition(cell->GetPosition());
-        }
-        // random movement
-        //        cell->UpdatePosition({random->Uniform(-1, 1),
-        //        random->Uniform(-1, 1), 0});
+      // add small random movements
+      cell->UpdatePosition({random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), 0});
+      if (cell->GetDiameter() < 15 && random->Uniform(0, 1) < 0.01) {
+        cell->ChangeVolume(0.1);
       }
+
+      /* -- cell movement -- */
+      if (withMovement && cellClock >= 400) {
+        // cell movement based on homotype substance gradient
+        // 0. with cell death - 0. without
+        // 10100755032 too much - 1010075504 not enough
+        if (concentration >= 0.10100755034) {
+          cell->UpdatePosition(diff_gradient);
+        }
+      } // end tangential migration
 
       /* -- cell death -- */
-      if (withCellDeath && cellClock >= 200) {
-        // add small random movements if tangential dispersion is off
-        if (!withMovement && cellClock < 400 && concentration >= 0.104725) {
-          cell->UpdatePosition({random->Uniform(-0.2, 0.2), random->Uniform(-0.2, 0.2), 0});
-          cell->SetPosition(cell->GetPosition());
-        }
+      if (withCellDeath && cellClock >= 400 && cellClock < 2000) {
         // add vertical migration as the multi layer colapse in just on layer
-        if (concentration >= 0.1045) {  // 104
-          cell->UpdatePosition(gradient_z);
-          //          cell->UpdatePosition(diff_gradient);
-          cell->SetPosition(cell->GetPosition());
-        }
+        cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-
-        // die if concentration is too high; proba so all cells don't die simultaneously
-        // 0.1047 for already existing mosaic - 0.1048 for random position - 0.1047x for inbetween
-        if (concentration >= 0.10485 && random->Uniform(0, 1) < 0.1) {
-          cell->RemoveFromSimulation();
+        // with cell fate: 0.11
+        // with cell movement:
+        // with cell fate and cell movement:
+        if (concentration >= 0.11 && random->Uniform(0, 1) < 0.1) {
+          // auto my_cells = rm->template Get<MyCell>();
+          // if (my_cells->size() > 40) {
+            cell->RemoveFromSimulation();
+          // }
         }
-        // randomly kill ~60% cells (over 250 steps)
-        //      if (random->Uniform(0, 1) < 0.004) {
-        //        cell->RemoveFromSimulation();
-        //      }
-      }
+
+        auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
+          if (random->Uniform(0, 1) < 0.2) {
+            neighbor->RemoveFromSimulation();
+          }
+        };
+        auto* grid = sim->GetGrid();
+        grid->ForEachNeighborWithinRadius(killNeighbor, cell, cell->GetSoHandle(), cell->GetDiameter()*1.5);
+      } // end cell death
 
       /* -- cell fate -- */
       // cell type attribution depending on concentrations
@@ -148,26 +147,23 @@ struct Chemotaxis : public BaseBiologyModule {
         double concentration_1 = dg_1_->GetConcentration(position);
         dg_0_->GetGradient(position, &gradient_0_);
         double concentration_0 = dg_0_->GetConcentration(position);
-
         // if no substances
         // random so all cell types doesn't create all randomly at step 1
-        // if (concentration_1 == 0 && concentration_0 == 0 && random->Uniform(0, 1) < 0.0001) {
-        //   // random attribution of a cell type
-        //   cell->SetCellType((int)random->Uniform(0, 2));
-        // }
-
-        // if [Off substance] > [On substance]
-        // random so all cell doesn't choose their type in the same time
-        if (concentration_1 > concentration_0 && concentration_1 > 0.01 // 0.000001
-          && random->Uniform(0, 1) < 0.1) {
-            cell->SetCellType(0);  // cell become on
+        if (concentration_1 == 0 && concentration_0 == 0 && random->Uniform(0, 1) < 0.0001) {
+          // random attribution of a cell type
+          cell->SetCellType((int)random->Uniform(0, 2));
         }
-
+        // if [Off substance] > [On substance] - 1e-8 for diffusion = 0.02
+        // random so all cell doesn't choose their type in the same time
+        if (concentration_1 > 1e-8 && concentration_1 > concentration_0
+          && random->Uniform(0, 1) < 0.1) {
+            cell->SetCellType(0); // cell become on
+        }
         // if [On substance] > [Off substance]
         // random so cells don't choose their type in the same time
-        if (concentration_0 > concentration_1 && concentration_0 > 0.01
+        if (concentration_0 > 1e-8 && concentration_0 > concentration_1
           && random->Uniform(0, 1) < 0.1) {
-          cell->SetCellType(1);  // cell become off
+            cell->SetCellType(1); // cell become off
         }
       }  // end cell type = -1
 
@@ -184,8 +180,6 @@ struct Chemotaxis : public BaseBiologyModule {
   bool init_ = false;
   DiffusionGrid* dg_0_ = nullptr;
   DiffusionGrid* dg_1_ = nullptr;
-  array<double, 3> gradient_0_;
-  array<double, 3> gradient_1_;
   ClassDefNV(Chemotaxis, 1);
 };  // end biologyModule Chemotaxis
 
@@ -209,14 +203,13 @@ struct SubstanceSecretion : public BaseBiologyModule {
         init_ = true;
       }
       auto& secretion_position = cell->GetPosition();
-
       // if off cell, secrete off cells substance
       if (cell->GetCellType() == 1) {
-        dg_1_->IncreaseConcentrationBy(secretion_position, 1);  // 0.1
+        dg_1_->IncreaseConcentrationBy(secretion_position, 0.1);
       }
       // is on cell, secrete on cells substance
       else if (cell->GetCellType() == 0) {
-        dg_0_->IncreaseConcentrationBy(secretion_position, 1); // 0.1
+        dg_0_->IncreaseConcentrationBy(secretion_position, 0.1);
       }
     }
   }
@@ -264,20 +257,21 @@ static void CellCreator(double min, double max, int num_cells,
 // position exporteur
 template <typename TSimulation = Simulation<>>
 inline void position_exporteur(int i) {
+  int seed = TSimulation::GetActive()->GetRandom()->GetSeed();
   ofstream positionFileOn;
   ofstream positionFileOff;
   ofstream positionFileAll;
   stringstream sstmOn;
   stringstream sstmOff;
   stringstream sstmAll;
-  sstmOn << "on_t" << i << ".txt";
-  sstmOff << "off_t" << i << ".txt";
-  sstmAll << "all_t" << i << ".txt";
+  sstmOn << "on_t" << i << "_seed" << seed << ".txt";
+  sstmOff << "off_t" << i << "_seed" << seed << ".txt";
+  sstmAll << "all_t" << i << "_seed" << seed << ".txt";
 
   string fileNameOn = sstmOn.str();
   string fileNameOff = sstmOff.str();
   string fileNameAll = sstmAll.str();
-  positionFileOn.open(fileNameOn);  // TODO: include seed number to file name
+  positionFileOn.open(fileNameOn);
   positionFileOff.open(fileNameOff);
   positionFileAll.open(fileNameAll);
 
@@ -291,12 +285,17 @@ inline void position_exporteur(int i) {
     auto position = (*my_cells)[cellNum].GetPosition();
     if (thisCellType == 0) {
       positionFileOn << position[0] << " " << position[1] << "\n";
-      positionFileAll << position[0] << " " << position[1] << " " << position[2]
-                      << " on\n";
-    } else {
+      positionFileAll << position[0] << " " << position[1] << " "
+                      << position[2] << " on\n";
+    }
+    else if (thisCellType == 1) {
       positionFileOff << position[0] << " " << position[1] << "\n";
-      positionFileAll << position[0] << " " << position[1] << " " << position[2]
-                      << " off\n";
+      positionFileAll << position[0] << " " << position[1] << " "
+                      << position[2] << " off\n";
+    }
+    else {
+    positionFileAll << position[0] << " " << position[1] << " "
+                    << position[2] << " nd\n";
     }
   }
   positionFileOn.close();
@@ -312,17 +311,17 @@ inline double computeRI(vector<array<double, 3>> coordList) {
     array<double, 3> cellPosition = coordList[i];
 
     double shortestDist = 9999;
-    for (unsigned int j = 0; j < coordList.size();
-         j++) {  // for each other cell of same type in the simulation
+    // for each other cell of same type in the simulation
+    for (unsigned int j = 0; j < coordList.size();  j++) {
       array<double, 3> otherCellPosition = coordList[j];
 
+      // get the distance between those 2 cells (x-y plan only)
       double tempsDistance =
           sqrt(pow(cellPosition[0] - otherCellPosition[0], 2) +
-               pow(cellPosition[1] - otherCellPosition[1],
-                   2));  // get the distance between those 2 cells
-      if (tempsDistance < shortestDist &&
-          tempsDistance != 0) {        // if cell is not itself
-        shortestDist = tempsDistance;  // updade closest neighbour distance
+               pow(cellPosition[1] - otherCellPosition[1], 2));
+      // if cell is closer and is not itself
+      if (tempsDistance < shortestDist && tempsDistance != 0) {
+        shortestDist = tempsDistance; // updade closest neighbour distance
       }
     }
     shortestDistList.push_back(
@@ -347,43 +346,42 @@ inline double computeRI(vector<array<double, 3>> coordList) {
   return aveShortestDist / std;  // return RI
 }  // end computeRI
 
+// get cells coordinate of same cell_type_ to call computeRI
 template <typename TSimulation = Simulation<>>
 inline double getRI(int desiredCellType) {
   auto* sim = TSimulation::GetActive();
   auto* rm = sim->GetResourceManager();
-  auto my_cells = rm->template Get<MyCell>();  // get cell list
-  vector<array<double, 3>> coordList;          // list of coordinate
+  auto my_cells = rm->template Get<MyCell>(); // get cell list
+  vector<array<double, 3>> coordList; // list of coordinate
   int numberOfCells = my_cells->size();
-
-  for (int cellNum = 0; cellNum < numberOfCells;
-       cellNum++) {  // for each cell in simulation
+  // for each cell in simulation
+  for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
     auto thisCellType = (*my_cells)[cellNum].GetCellType();
-    if (thisCellType == desiredCellType) {  // if cell is of the desired type
-      auto position = (*my_cells)[cellNum].GetPosition();  // get its position
-      coordList.push_back(position);  // put cell coord in the list
+    if (thisCellType == desiredCellType) { // if cell is of the desired type
+      auto position = (*my_cells)[cellNum].GetPosition(); // get its position
+      coordList.push_back(position); // put cell coord in the list
     }
   }
-  //    cout << coordList.size() << " cells of type " << desiredCellType <<
-  //    endl;
   return computeRI(coordList);  // return RI for desired cell type
-}  //; end getRI
+} // end getRI
 
 /* -------- simulate -------- */
 // template <typename TResourceManager = ResourceManager<>>
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  double diffusionCoef = 0.0;
+  double diffusionCoef = 0.02;
   double decayConst = 0.0;
 
-  // for (int eachDiffus = 0; eachDiffus < 10; eachDiffus++) {
-  //
-  //   decayConst = 0;
-  //   diffusionCoef += 0.01;
-  //
-  //   for (int eachDecay = 0; eachDecay < 10; eachDecay++) {
-  //
-  //     decayConst += 0.01;
+  ofstream outputFile;
+  outputFile.open("diffusion_RI_study.txt");
+
+  while (diffusionCoef <= 0.75) {
+    decayConst = 0.95;
+    diffusionCoef += 0.01;
+
+    while (decayConst <= 1.25) {
+      decayConst += 0.01;
 
       auto simulation = new Simulation<>(argc, argv);
       simulation->Activate();
@@ -393,68 +391,133 @@ inline int Simulate(int argc, const char** argv) {
       auto* scheduler = simulation->GetScheduler();
       auto* param = simulation->GetParam();
 
+      // number of simulation steps
+      int maxStep = 2000;
       // Create an artificial bounds for the simulation space
-      int cubeDim = 40; // 500
+      int cubeDim = 500;
+      int num_cells = 4400;
+
       param->bound_space_ = true;
       param->min_bound_ = 0;
-      // cells are created with +20 to min and -20 to max. so physical cube has to be cubeDim+40
-      param->max_bound_ = cubeDim;
+      // cell are created with +20 to min and -20 to max. so physical cube has to be cubeDim+40
+      param->max_bound_ = cubeDim + 40;
+      param->run_mechanical_interactions_ = true;
 
       int mySeed = rand() % 10000;
-      mySeed = 8274;  // 9784
+      mySeed = 9784;  // 9784
       random->SetSeed(mySeed);
 
-      auto* cells = rm->template Get<MyCell>();
+      // Construct cells of on cells (type 0)
+      auto construct_on = [](const array<double, 3>& position) {
+        auto* simulation = TSimulation::GetActive();
+        auto* random = simulation->GetRandom();
+        MyCell cell(position);
+        cell.SetDiameter(random->Uniform(8, 9));  // random diameter between 8 and 9
+        cell.SetCellType(0);
+        cell.SetInternalClock(0);
+        cell.AddBiologyModule(SubstanceSecretion<>());
+        cell.AddBiologyModule(Chemotaxis<>());
+        return cell;
+      };
+      CellCreator(param->min_bound_, param->max_bound_, 0, construct_on); // num_cells/2
 
-      MyCell cell0({10,25,25});
-      cell0.SetDiameter(8);
-      cell0.SetCellType(0);
-      cell0.SetInternalClock(0);
-      cell0.AddBiologyModule(SubstanceSecretion<>());
-      cell0.AddBiologyModule(Chemotaxis<>());
-      cells->push_back(cell0);
+      // Construct cells of off cells (type 1)
+      auto construct_off = [](const array<double, 3>& position) {
+        auto* simulation = TSimulation::GetActive();
+        auto* random = simulation->GetRandom();
+        MyCell cell(position);
+        cell.SetDiameter(random->Uniform(8, 9)); // random diameter
+        cell.SetCellType(1);
+        cell.SetInternalClock(0);
+        cell.AddBiologyModule(SubstanceSecretion<>());
+        cell.AddBiologyModule(Chemotaxis<>());
+        return cell;
+      };
+      CellCreator(param->min_bound_, param->max_bound_, 0, construct_off); // num_cells/2
 
-      cells->Commit();
+      // construct neutral cells (type -1)
+      auto construct_nonType = [](const array<double, 3>& position) {
+        auto* simulation = TSimulation::GetActive();
+        auto* random = simulation->GetRandom();
+        MyCell cell(position);
+        cell.SetDiameter(random->Uniform(8, 9));
+        cell.SetCellType(-1);
+        cell.SetInternalClock(0);
+        cell.AddBiologyModule(SubstanceSecretion<>());
+        cell.AddBiologyModule(Chemotaxis<>());
+        return cell;
+      };
+      CellCreator(param->min_bound_, param->max_bound_, num_cells, construct_nonType); // num_cells
 
       // 3. Define the substances that cells may secrete
       // Order: substance_name, diffusion_coefficient, decay_constant, resolution
       // if diffusion_coefficient is low, diffusion distance is short
       // if decay_constant is high, diffusion distance is short
       // resolution is number of point in one domaine dimension
-      ModelInitializer::DefineSubstance(0, "on_diffusion", 0.05, 0.01, param->max_bound_);  // 0.5, 0.1
-      ModelInitializer::DefineSubstance(1, "off_diffusion", 1, 0.5, param->max_bound_);  // 0.5, 0.1
+      ModelInitializer::DefineSubstance(0, "on_diffusion", diffusionCoef, decayConst, param->max_bound_/10);
+      ModelInitializer::DefineSubstance(1, "off_diffusion", diffusionCoef, decayConst, param->max_bound_/10);
 
-      // set some param
-      // number of simulation steps // 1201
-      int maxStep = 500;
-      // if you want to write file for RI and cell position
-      // create cell position files every outputFrequence steps
-      ofstream outputFile;
+      auto my_cells = rm->template Get<MyCell>();
+      int numberOfCells = my_cells->size();
 
-      outputFile.open("diffus=" + to_string(diffusionCoef) + "_decay=" + to_string(decayConst) + ".txt");
-
-      auto dg_0_ = rm->GetDiffusionGrid("on_diffusion");
+      cout << "runing simulation" << endl;
 
       for (int i = 0; i < maxStep; i++) {
-        scheduler->Simulate(1);
+        my_cells = rm->template Get<MyCell>();
+        numberOfCells = my_cells->size();
+        if (numberOfCells > 44) {
+          scheduler->Simulate(1);
+        }
+        else {
+          break;
+        }
+      } // end for Simulate
 
-          outputFile << dg_0_->GetConcentration({10,25,25}) << " "
-          << dg_0_->GetConcentration({12,25,25}) << " "
-          << dg_0_->GetConcentration({14,25,25}) << " "
-          << dg_0_->GetConcentration({16,25,25}) << " "
-          << dg_0_->GetConcentration({18,25,25}) << " "
-          << dg_0_->GetConcentration({20,25,25}) << "\n";
+      my_cells = rm->template Get<MyCell>();
+      numberOfCells = my_cells->size();
+      int numberOfCellsm1 = 0;
+      int numberOfCells0 = 0;
+      int numberOfCells1 = 0;
 
-      } // end for i to maxStep
-      outputFile.close();
+      for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
+        auto thisCellType = (*my_cells)[cellNum].GetCellType();
+        if (thisCellType == 0) {
+          numberOfCells0++;
+        } else if (thisCellType == 1) {
+          numberOfCells1++;
+        } else if (thisCellType == -1) {
+          numberOfCellsm1++;
+        }
+      }
 
-      std::cout << "simulation " << diffusionCoef << " " << decayConst << " done" << std::endl;
+      if (numberOfCells0 > 22 && numberOfCells1 > 22) {
+        outputFile << diffusionCoef << " " << decayConst << " "
+                   << (getRI(0)+getRI(1))/2 << " "
+                   << numberOfCellsm1 << " "
+                   << numberOfCells0 << " "
+                   << numberOfCells1 << "\n";
+
+        cout << "simulation " << diffusionCoef << " "
+             << decayConst << " done - RI= " << (getRI(0)+getRI(1))/2 << "; "
+             << numberOfCells << " cells remaning: "
+             << numberOfCellsm1 << " undifferentiated cells - "
+             << numberOfCells0 << " on cells - "
+             << numberOfCells1 << " off cells" << endl;
+      }
+      else {
+        outputFile << diffusionCoef << " " << decayConst << " "
+                   << "nan nan nan nan\n";
+
+        cout << "simulation " << diffusionCoef << " "
+             << decayConst << " done - not enough cells remaning" << endl;
+      }
 
       delete simulation;
 
-  //   } // end for eachDecay
-  // } // end eachDiffus
+    } // end for eachDecay
+  } // end eachDiffus
 
+  outputFile.close();
   return 0;
 
 } // end Simulate
