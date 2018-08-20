@@ -593,6 +593,9 @@ inline int Simulate(int argc, const char** argv) {
   // cell are created with +20 to min and -20 to max
   param->max_bound_ = cubeDim + 40;
   param->run_mechanical_interactions_ = true;
+  // set min and max length for neurite segments
+  param->kNeuriteMinLength = 1.0;
+  param->kNeuriteMaxLength = 2.0;
 
   int mySeed = rand() % 10000;
   mySeed = 9784;  // 9784
