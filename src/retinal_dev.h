@@ -126,9 +126,10 @@ struct Chemotaxis : public BaseBiologyModule {
         if (concentration >= 0.11 && random->Uniform(0, 1) < 0.1) {
           cell->RemoveFromSimulation();
         }
-
+        // cell death for homotype cells in contact
         auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
-          if (random->Uniform(0, 1) < 0.2) {
+          if (cell->GetCellType() == neighbor->GetCellType()
+              && random->Uniform(0, 1) < 0.2) {
             neighbor->RemoveFromSimulation();
           }
         };
