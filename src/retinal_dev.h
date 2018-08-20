@@ -167,26 +167,27 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
           // lambda updating external counters for neighbor neurites
           int ownType = 0;
           int otherType = 0;
-          // auto countNeighbours = [&](auto&& neighbor, SoHandle neighbor_handle) {
-          //   // if neighbor is a NeuriteElement
-          //   if (neighbor.GetSoPtr().IsSoType(this)) {
-          //     auto&& neighbor_rc = neighbor.template ReinterpretCast<MyNeurite>();
-          //     auto n_soptr = neighbor_rc.GetSoPtr();
-          //     // if it is a direct relative
-          //     if (n_soptr.GetNeuronSomaOfNeurite() !=
-          //     this->GetNeuronSomaOfNeurite() &&
-          //     n_soptr.GetNeuronSomaOfNeurite()->GetCellType() ==
-          //     this->GetNeuronSomaOfNeurite()->GetCellType()) {
-          //       ownType++;
-          //     }
-          //     else {
-          //       otherType++;
-          //     }
-          //   }
-          // };
-          // auto* grid = sim->GetGrid();
-          // grid->ForEachNeighborWithinRadius(
-          //   countNeighbours, ne, ne->GetSoHandle(), 1);
+          auto countNeighbours = [&](auto&& neighbor, SoHandle neighbor_handle) {
+            // if neighbor is a NeuriteElement
+            if (neighbor->GetSoPtr()->IsSoType(ne)) {
+              auto&& neighbor_rc = neighbor->template
+                ReinterpretCast<MyNeurite>();
+              auto n_soptr = neighbor_rc->GetSoPtr();
+              // if it is a direct relative
+              if (n_soptr->GetNeuronSomaOfNeurite() !=
+                  ne->GetNeuronSomaOfNeurite() &&
+                  n_soptr->GetNeuronSomaOfNeurite()->GetCellType() ==
+                  ne->GetNeuronSomaOfNeurite()->GetCellType()) {
+                ownType++;
+              }
+              else {
+                otherType++;
+              }
+            }
+          };
+          auto* grid = sim->GetGrid();
+          grid->ForEachNeighborWithinRadius(
+            countNeighbours, ne, ne->GetSoHandle(), 5);
 
           if (ownType > otherType) {
             ne->SetHasToRetract(true);
@@ -594,8 +595,8 @@ inline int Simulate(int argc, const char** argv) {
   param->max_bound_ = cubeDim + 40;
   param->run_mechanical_interactions_ = true;
   // set min and max length for neurite segments
-  param->kNeuriteMinLength = 1.0;
-  param->kNeuriteMaxLength = 2.0;
+  // param->kNeuriteMinLength = 1.0;
+  // param->kNeuriteMaxLength = 2.0;
 
   int mySeed = rand() % 10000;
   mySeed = 9784;  // 9784
