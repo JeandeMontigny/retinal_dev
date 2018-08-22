@@ -80,6 +80,75 @@ public:
   vec<int> diam_before_retract_;
 };
 
+
+template <typename TSimulation = Simulation<>>
+struct RGC_dendrite_growth_test : public BaseBiologyModule {
+  RGC_dendrite_growth_test() : BaseBiologyModule(gAllBmEvents) {}
+
+  template <typename T>
+  void Run(T* sim_object) {
+    auto* sim = TSimulation::GetActive();
+    auto* random = sim->GetRandom();
+    auto* param = sim->GetParam();
+    auto* rm = sim->GetResourceManager();
+
+    if (sim_object->template IsSoType<MyNeurite>()) {
+      auto&& sim_objectNe = sim_object->template ReinterpretCast<MyNeurite>();
+      auto ne = sim_objectNe.GetSoPtr();
+
+      if (ne->IsTerminal() && ne->GetDiameter() >= 0.6) {
+        if (!init_) {
+          dg_on_RGCguide_ = rm->GetDiffusionGrid("on_substance_RGC_guide");
+          dg_off_RGCguide_ = rm->GetDiffusionGrid("off_substance_RGC_guide");
+          init_ = true;
+        }
+        array<double, 3> gradient_RGCguide;
+        double concentration = 0;
+        // initialise the correct substance as guide depending on cell type
+        if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 0) {
+          dg_on_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
+          concentration = dg_on_RGCguide_->GetConcentration(ne->GetPosition());
+        }
+        if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 1) {
+          dg_off_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
+          concentration = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
+        }
+
+        double gradientWeight = 0.5;
+        double randomnessWeight = 0.6;
+        double oldDirectionWeight = 2.0;
+        array<double, 3> random_axis = {random->Uniform(-1, 1),
+                                        random->Uniform(-1, 1),
+                                        random->Uniform(-1, 1)};
+        auto oldDirection =
+            Math::ScalarMult(oldDirectionWeight, ne->GetSpringAxis());
+        auto gradDirection = Math::ScalarMult(
+            gradientWeight, Math::Normalize(gradient_RGCguide));
+        auto randomDirection =
+            Math::ScalarMult(randomnessWeight, random_axis);
+        array<double, 3> newStepDirection = Math::Add(
+            Math::Add(oldDirection, randomDirection), gradDirection);
+
+        ne->ElongateTerminalEnd(25, newStepDirection);
+        ne->SetDiameter(ne->GetDiameter()-0.0005);
+
+        if (concentration > 0.04 && random->Uniform() < 0.01) {
+          ne->SetDiameter(ne->GetDiameter()-0.01);
+          ne->Bifurcate();
+        }
+
+      } // if is terminal
+    } // if MyNeurite object
+  } // end run
+
+  private:
+    bool init_ = false;
+    DiffusionGrid* dg_on_RGCguide_ = nullptr;
+    DiffusionGrid* dg_off_RGCguide_ = nullptr;
+    ClassDefNV(RGC_dendrite_growth_test, 1);
+  };
+
+
 // Define dendrites behavior for RGC dendritic growth
 template <typename TSimulation = Simulation<>>
 struct RGC_dendrite_growth : public BaseBiologyModule {
@@ -167,27 +236,27 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
           // lambda updating external counters for neighbor neurites
           int ownType = 0;
           int otherType = 0;
-          auto countNeighbours = [&](auto&& neighbor, SoHandle neighbor_handle) {
-            // if neighbor is a NeuriteElement
-            if (neighbor->GetSoPtr()->IsSoType(ne)) {
-              auto&& neighbor_rc = neighbor->template
-                ReinterpretCast<MyNeurite>();
-              auto n_soptr = neighbor_rc->GetSoPtr();
-              // if it is a direct relative
-              if (n_soptr->GetNeuronSomaOfNeurite() !=
-                  ne->GetNeuronSomaOfNeurite() &&
-                  n_soptr->GetNeuronSomaOfNeurite()->GetCellType() ==
-                  ne->GetNeuronSomaOfNeurite()->GetCellType()) {
-                ownType++;
-              }
-              else {
-                otherType++;
-              }
-            }
-          };
-          auto* grid = sim->GetGrid();
-          grid->ForEachNeighborWithinRadius(
-            countNeighbours, ne, ne->GetSoHandle(), 5);
+          // auto countNeighbours = [&](auto&& neighbor, SoHandle neighbor_handle) {
+          //   // if neighbor is a NeuriteElement
+          //   if (neighbor->GetSoPtr()->IsSoType(ne)) {
+          //     auto&& neighbor_rc = neighbor->template
+          //       ReinterpretCast<MyNeurite>();
+          //     auto n_soptr = neighbor_rc->GetSoPtr();
+          //     // if it is a direct relative
+          //     if (n_soptr->GetNeuronSomaOfNeurite() !=
+          //         ne->GetNeuronSomaOfNeurite() &&
+          //         n_soptr->GetNeuronSomaOfNeurite()->GetCellType() ==
+          //         ne->GetNeuronSomaOfNeurite()->GetCellType()) {
+          //       ownType++;
+          //     }
+          //     else {
+          //       otherType++;
+          //     }
+          //   }
+          // };
+          // auto* grid = sim->GetGrid();
+          // grid->ForEachNeighborWithinRadius(
+          //   countNeighbours, ne, ne->GetSoHandle(), 4);
 
           if (ownType > otherType) {
             ne->SetHasToRetract(true);
@@ -203,7 +272,7 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
 
         // if has to retract
         else {
-          ne->RetractTerminalEnd(40);
+//          ne->RetractTerminalEnd(40);
 
           // what to do in case of retraction due to interaction
           if (!ne->GetBeyondThreshold() &&
@@ -431,7 +500,7 @@ struct SubstanceSecretion : public BaseBiologyModule {
 template <typename Backend>
 struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
   using BiologyModules =
-      Variant<Chemotaxis<>, SubstanceSecretion<>, RGC_dendrite_growth<>>;
+      Variant<Chemotaxis<>, SubstanceSecretion<>, RGC_dendrite_growth<>, RGC_dendrite_growth_test<>>;
   using AtomicTypes = VariadicTypedef<MyCell, MyNeurite>;
   using NeuronSoma = MyCell;
   using NeuriteElement = MyNeurite;
@@ -582,21 +651,20 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 2000;
+  int maxStep = 2500;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400;
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
+  // cell are created with +20 to min and -20 to max
   param->bound_space_ = true;
   param->min_bound_ = 0;
-  // cell are created with +20 to min and -20 to max
   param->max_bound_ = cubeDim + 40;
-  param->run_mechanical_interactions_ = true;
   // set min and max length for neurite segments
-  // param->kNeuriteMinLength = 1.0;
-  // param->kNeuriteMaxLength = 2.0;
+  param->kNeuriteMinLength = 1.0;
+  param->kNeuriteMaxLength = 2.0;
 
   int mySeed = rand() % 10000;
   mySeed = 9784;  // 9784
@@ -636,12 +704,14 @@ inline int Simulate(int argc, const char** argv) {
     cell.AddBiologyModule(SubstanceSecretion<>());
     cell.AddBiologyModule(Chemotaxis<>());
 
-    auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    ne->SetDiameter(1);
-    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
-    ne->GetSoPtr()->SetHasToRetract(false);
-    ne->GetSoPtr()->SetSleepMode(false);
-    ne->GetSoPtr()->SetBeyondThreshold(false);
+    for (int i=0; i < 4; i++) {
+      auto ne = cell.ExtendNewNeurite({0, 0, 1});
+      ne->SetDiameter(1);
+      ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
+      ne->GetSoPtr()->SetHasToRetract(false);
+      ne->GetSoPtr()->SetSleepMode(false);
+      ne->GetSoPtr()->SetBeyondThreshold(false);
+    }
 
     return cell;
   };
@@ -680,23 +750,24 @@ inline int Simulate(int argc, const char** argv) {
                                     0.05, 0.99, param->max_bound_/10);
   ModelInitializer::DefineSubstance(1, "off_diffusion",
                                     0.05, 0.99, param->max_bound_/10);
+
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(2, "on_substance_RGC_guide",
-                                    0.5, 0.1, 1);
+                                    0, 0, param->max_bound_/6);
   ModelInitializer::DefineSubstance(3, "off_substance_RGC_guide",
-                                    0.5, 0.1, 1);
+                                    0, 0, param->max_bound_/6);
   // create substance gaussian distribution for RGC dendrite attraction
   // average peak distance for ON cells: 15.959 with std of 5.297;
   ModelInitializer::InitializeSubstance(2, "on_substance_RGC_guide",
-                                        GaussianBand(56, 6, Axis::kZAxis));
+                                        GaussianBand(46, 6, Axis::kZAxis));
   // average peak distance for OFF cells: 40.405 with std of 8.39;
   ModelInitializer::InitializeSubstance(3, "off_substance_RGC_guide",
-                                        GaussianBand(80, 8, Axis::kZAxis));
+                                        GaussianBand(70, 8, Axis::kZAxis));
   cout << "substances initialised" << endl;
 
   // set write output param
   // if you want to write file for RI and cell position
-  bool writeRI = true;
+  bool writeRI = false;
   bool writePositionExport = false;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
