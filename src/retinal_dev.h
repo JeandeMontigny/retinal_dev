@@ -673,8 +673,8 @@ inline int Simulate(int argc, const char** argv) {
   param->min_bound_ = 0;
   param->max_bound_ = cubeDim + 40;
   // set min and max length for neurite segments
-  param->kNeuriteMinLength = 1.0;
-  param->kNeuriteMaxLength = 2.0;
+  param->neurite_min_length_ = 1.0;
+  param->neurite_max_length_ = 2.0;
 //  param->kOutputDir = "myOutput";
 
   int mySeed = rand() % 10000;
