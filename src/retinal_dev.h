@@ -89,7 +89,7 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
   void Run(T* sim_object) {
     auto* sim = TSimulation::GetActive();
     auto* random = sim->GetRandom();
-    auto* param = sim->GetParam();
+//    auto* param = sim->GetParam();
     auto* rm = sim->GetResourceManager();
 
     if (sim_object->template IsSoType<MyNeurite>()) {
@@ -507,25 +507,35 @@ struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
 };
 
 // define my cell creator
-template <typename Function, typename TSimulation = Simulation<>>
-static void CellCreator(double min, double max, int num_cells,
-                        Function cell_builder) {
+template <typename TSimulation = Simulation<>>
+static void CellCreator(double min, double max, int num_cells, int cellType) {
   auto* sim = TSimulation::GetActive();
   auto* rm = sim->GetResourceManager();
   auto* random = sim->GetRandom();
 
-  // Determine simulation object type which is returned by the cell_builder
-  using FunctionReturnType = decltype(cell_builder({0, 0, 0}));
-
-  auto container = rm->template Get<FunctionReturnType>();
+  auto* container = rm->template Get<MyCell>();
   container->reserve(num_cells);
 
   for (int i = 0; i < num_cells; i++) {
     double x = random->Uniform(min + 20, max - 20);
     double y = random->Uniform(min + 20, max - 20);
     double z = random->Uniform(min + 20, 40);  // 24
-    auto new_simulation_object = cell_builder({x, y, z});
-    container->push_back(new_simulation_object);
+    std::array<double, 3> position = {x, y, z};
+
+    auto&& cell = rm->template New<MyCell>(position);
+    cell.SetDiameter(random->Uniform(7, 8)); // random diameter
+    cell.SetCellType(cellType);
+    cell.SetInternalClock(0);
+    cell.AddBiologyModule(SubstanceSecretion<>());
+    cell.AddBiologyModule(Chemotaxis<>());
+
+    auto&& ne = cell.ExtendNewNeurite({0, 0, 1});
+    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
+    ne->GetSoPtr()->SetHasToRetract(false);
+    ne->GetSoPtr()->SetSleepMode(false);
+    ne->GetSoPtr()->SetBeyondThreshold(false);
+
+    // container->push_back(new_simulation_object);
   }
   container->Commit();
 }  // end CellCreator
@@ -665,80 +675,19 @@ inline int Simulate(int argc, const char** argv) {
   // set min and max length for neurite segments
   param->kNeuriteMinLength = 1.0;
   param->kNeuriteMaxLength = 2.0;
+//  param->kOutputDir = "myOutput";
 
   int mySeed = rand() % 10000;
   mySeed = 9784;  // 9784
   random->SetSeed(mySeed);
   cout << "modelling with seed " << mySeed << endl;
 
-  // Construct cells of on cells (type 0)
-  auto construct_on = [](const array<double, 3>& position) {
-    auto* simulation = TSimulation::GetActive();
-    auto* random = simulation->GetRandom();
-    MyCell cell(position);
-    cell.SetDiameter(random->Uniform(7, 8)); // random diameter
-    cell.SetCellType(0);
-    cell.SetInternalClock(0);
-    cell.AddBiologyModule(SubstanceSecretion<>());
-    cell.AddBiologyModule(Chemotaxis<>());
-
-    auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
-    ne->GetSoPtr()->SetHasToRetract(false);
-    ne->GetSoPtr()->SetSleepMode(false);
-    ne->GetSoPtr()->SetBeyondThreshold(false);
-
-    return cell;
-  };
-  CellCreator(param->min_bound_, param->max_bound_, 0, construct_on);
+  // min position, max position, number of cells , cell type
+  CellCreator(param->min_bound_, param->max_bound_, num_cells/2, 0);
   cout << "on cells created" << endl;
-
-  // Construct cells of off cells (type 1)
-  auto construct_off = [](const array<double, 3>& position) {
-    auto* simulation = TSimulation::GetActive();
-    auto* random = simulation->GetRandom();
-    MyCell cell(position);
-    cell.SetDiameter(random->Uniform(7, 8)); // random diameter
-    cell.SetCellType(1);
-    cell.SetInternalClock(0);
-    cell.AddBiologyModule(SubstanceSecretion<>());
-    cell.AddBiologyModule(Chemotaxis<>());
-
-    for (int i=0; i < 4; i++) {
-      auto ne = cell.ExtendNewNeurite({0, 0, 1});
-      ne->SetDiameter(1);
-      ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
-      ne->GetSoPtr()->SetHasToRetract(false);
-      ne->GetSoPtr()->SetSleepMode(false);
-      ne->GetSoPtr()->SetBeyondThreshold(false);
-    }
-
-    return cell;
-  };
-  CellCreator(param->min_bound_, param->max_bound_, 1, construct_off);
+  CellCreator(param->min_bound_, param->max_bound_, num_cells/2, 1);
   cout << "off cells created" << endl;
-
-  // construct neutral cells (type -1)
-  auto construct_nonType = [](const array<double, 3>& position) {
-    auto* simulation = TSimulation::GetActive();
-    auto* random = simulation->GetRandom();
-    MyCell cell(position);
-    cell.SetDiameter(random->Uniform(7, 8)); // random diameter
-    cell.SetCellType(-1);
-    cell.SetInternalClock(0);
-    cell.AddBiologyModule(SubstanceSecretion<>());
-    cell.AddBiologyModule(Chemotaxis<>());
-
-    auto ne = cell.ExtendNewNeurite({0, 0, 1});
-    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
-    ne->GetSoPtr()->SetHasToRetract(false);
-    ne->GetSoPtr()->SetSleepMode(false);
-    ne->GetSoPtr()->SetBeyondThreshold(false);
-
-    return cell;
-  };
-  CellCreator(param->min_bound_, param->max_bound_,
-    0, construct_nonType); // num_cells
+  CellCreator(param->min_bound_, param->max_bound_, 0, -1); // num_cells
   cout << "undifferentiated cells created" << endl;
 
   // 3. Define substances
@@ -753,9 +702,9 @@ inline int Simulate(int argc, const char** argv) {
 
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(2, "on_substance_RGC_guide",
-                                    0, 0, param->max_bound_/6);
+                                    0, 0, param->max_bound_/5);
   ModelInitializer::DefineSubstance(3, "off_substance_RGC_guide",
-                                    0, 0, param->max_bound_/6);
+                                    0, 0, param->max_bound_/5);
   // create substance gaussian distribution for RGC dendrite attraction
   // average peak distance for ON cells: 15.959 with std of 5.297;
   ModelInitializer::InitializeSubstance(2, "on_substance_RGC_guide",
