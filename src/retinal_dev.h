@@ -238,7 +238,7 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
           int otherType = 0;
           // auto countNeighbours = [&](auto&& neighbor, SoHandle neighbor_handle) {
           //   // if neighbor is a NeuriteElement
-          //   if (neighbor->GetSoPtr()->IsSoType(ne)) {
+          //   if (neighbor->template IsSoType<MyNeurite>()) {
           //     auto&& neighbor_rc = neighbor->template
           //       ReinterpretCast<MyNeurite>();
           //     auto n_soptr = neighbor_rc->GetSoPtr();
@@ -402,9 +402,16 @@ struct Chemotaxis : public BaseBiologyModule {
           cell->RemoveFromSimulation();
         }
 
+        // cell death for homotype cells in contact
         auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
-          if (random->Uniform(0, 1) < 0.2) {
-            neighbor->RemoveFromSimulation();
+          if (neighbor->template IsSoType<MyCell>()) {
+            auto&& neighbor_rc = neighbor->template
+                ReinterpretCast<MyCell>();
+            auto n_soptr = neighbor_rc->GetSoPtr();
+            if (cell->GetCellType() == n_soptr->GetCellType()
+                && random->Uniform(0, 1) < 0.2) {
+              n_soptr->RemoveFromSimulation();
+            }
           }
         };
         auto* grid = sim->GetGrid();
