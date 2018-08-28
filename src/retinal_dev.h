@@ -115,8 +115,8 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
         }
 
         double gradientWeight = 0.5;
-        double randomnessWeight = 0.6;
-        double oldDirectionWeight = 2.0;
+        double randomnessWeight = 1.0;
+        double oldDirectionWeight = 0.6;
         array<double, 3> random_axis = {random->Uniform(-1, 1),
                                         random->Uniform(-1, 1),
                                         random->Uniform(-1, 1)};
@@ -130,10 +130,10 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
             Math::Add(oldDirection, randomDirection), gradDirection);
 
         ne->ElongateTerminalEnd(25, newStepDirection);
-        ne->SetDiameter(ne->GetDiameter()-0.0005);
+        ne->SetDiameter(ne->GetDiameter()-0.00005);
 
-        if (concentration > 0.04 && random->Uniform() < 0.01) {
-          ne->SetDiameter(ne->GetDiameter()-0.01);
+        if (concentration > 0.04 && random->Uniform() < 0.1) {
+          ne->SetDiameter(ne->GetDiameter()-0.001);
           ne->Bifurcate();
         }
 
@@ -185,7 +185,7 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
       // if neurite is not in sleep & is terminal & mosaic is over
       if (!ne->GetSleepMode() && ne->IsTerminal() &&
           ne->GetNeuronSomaOfNeurite()->GetCellType() != -1 &&
-          ne->GetNeuronSomaOfNeurite()->GetInternalClock() > 400) {
+          ne->GetNeuronSomaOfNeurite()->GetInternalClock() > 00) { // 400
 
         // if neurite does not have to retract
         if (!ne->GetHasToRetract()) {
@@ -537,7 +537,7 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
     cell.AddBiologyModule(Chemotaxis<>());
 
     auto&& ne = cell.ExtendNewNeurite({0, 0, 1});
-    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth<>());
+    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
     ne->GetSoPtr()->SetHasToRetract(false);
     ne->GetSoPtr()->SetSleepMode(false);
     ne->GetSoPtr()->SetBeyondThreshold(false);
@@ -690,9 +690,9 @@ inline int Simulate(int argc, const char** argv) {
   cout << "modelling with seed " << mySeed << endl;
 
   // min position, max position, number of cells , cell type
-  CellCreator(param->min_bound_, param->max_bound_, num_cells/2, 0);
+  CellCreator(param->min_bound_, param->max_bound_, 1, 0);
   cout << "on cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, num_cells/2, 1);
+  CellCreator(param->min_bound_, param->max_bound_, 1, 1);
   cout << "off cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, 0, -1); // num_cells
   cout << "undifferentiated cells created" << endl;
@@ -709,9 +709,9 @@ inline int Simulate(int argc, const char** argv) {
 
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(2, "on_substance_RGC_guide",
-                                    0, 0, param->max_bound_/5);
+                                    0, 0, param->max_bound_/2);
   ModelInitializer::DefineSubstance(3, "off_substance_RGC_guide",
-                                    0, 0, param->max_bound_/5);
+                                    0, 0, param->max_bound_/2);
   // create substance gaussian distribution for RGC dendrite attraction
   // average peak distance for ON cells: 15.959 with std of 5.297;
   ModelInitializer::InitializeSubstance(2, "on_substance_RGC_guide",
