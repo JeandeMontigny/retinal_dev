@@ -114,9 +114,9 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
           concentration = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
         }
 
-        double gradientWeight = 0.5;
-        double randomnessWeight = 1.0;
-        double oldDirectionWeight = 0.6;
+        double gradientWeight = 0.2; // cx3d: 0.2
+        double randomnessWeight = 0.2; // cx3d: 0.8
+        double oldDirectionWeight = 1.5; // cx3d: 0.75
         array<double, 3> random_axis = {random->Uniform(-1, 1),
                                         random->Uniform(-1, 1),
                                         random->Uniform(-1, 1)};
@@ -130,9 +130,9 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
             Math::Add(oldDirection, randomDirection), gradDirection);
 
         ne->ElongateTerminalEnd(25, newStepDirection);
-        ne->SetDiameter(ne->GetDiameter()-0.00005);
+        ne->SetDiameter(ne->GetDiameter()-0.0005);
 
-        if (concentration > 0.04 && random->Uniform() < 0.1) {
+        if (concentration > 0.04 && random->Uniform() < 0.005) {
           ne->SetDiameter(ne->GetDiameter()-0.001);
           ne->Bifurcate();
         }
@@ -668,7 +668,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 2500;
+  int maxStep = 801;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400;
@@ -692,7 +692,7 @@ inline int Simulate(int argc, const char** argv) {
   // min position, max position, number of cells , cell type
   CellCreator(param->min_bound_, param->max_bound_, 1, 0);
   cout << "on cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 1, 1);
+  CellCreator(param->min_bound_, param->max_bound_, 0, 1);
   cout << "off cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, 0, -1); // num_cells
   cout << "undifferentiated cells created" << endl;
@@ -738,6 +738,7 @@ inline int Simulate(int argc, const char** argv) {
   int numberOfCells = my_cells->size();
   int numberOfCells0 = 0;
   int numberOfCells1 = 0;
+  int numberOfDendrites = 0;
 
   for (int i = 0; i < maxStep; i++) {
     scheduler->Simulate(1);
@@ -757,9 +758,11 @@ inline int Simulate(int argc, const char** argv) {
         numberOfCells = my_cells->size();
         numberOfCells0 = 0;
         numberOfCells1 = 0;
+        numberOfDendrites = 0;
 
         for (int cellNum = 0; cellNum < numberOfCells;
              cellNum++) {  // for each cell in simulation
+          numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
           auto thisCellType = (*my_cells)[cellNum].GetCellType();
           if (thisCellType == 0) {
             numberOfCells0++;
@@ -767,12 +770,13 @@ inline int Simulate(int argc, const char** argv) {
             numberOfCells1++;
           }
         }
-        cout << "step " << i << " out of " << maxStep << "\n"
+        cout << "-- step " << i << " out of " << maxStep << " --\n"
              << numberOfCells << " cells in simulation: "
              << (1 - ((double)numberOfCells / num_cells)) * 100
              << "% of cell death\n"
              << numberOfCells0 << " cells are type 0 (on) ; "
              << numberOfCells1 << " cells are type 1 (off)\n"
+             << numberOfDendrites << " dendrites in simulation\n"
              << "RI on: " << RIon << " ; RI off: " << RIoff
              << " ; mean: " << (RIon + RIoff) / 2 << endl;
       } // end every 100 simu steps
