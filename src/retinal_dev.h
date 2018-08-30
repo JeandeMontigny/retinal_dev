@@ -431,37 +431,35 @@ struct Chemotaxis : public BaseBiologyModule {
         dg_2_->GetGradient(position, &gradient_2_);
         double concentration_2 = dg_2_->GetConcentration(position);
 
-        map<string, double> concentrationMap;
-        concentrationDico["on"] = concentration_0;
-        concentrationDico["off"] = concentration_1;
-        concentrationDico["on_off"] = concentration_2;
+        map<int, double> concentrationMap;
+        concentrationMap[0] = concentration_0;
+        concentrationMap[1] = concentration_1;
+        concentrationMap[2] = concentration_2;
 
-        int nbOfZero;
+        vector<int> possibleCellType;
+        int nbOfZero = 0;
         double smallestValue = 1e10;
 
-        auto it = min_element(pairs.begin(), pairs.end(),
-                    [](decltype(pairs)::value_type& l,
-                    decltype(pairs)::value_type& r) -> bool
-                    { return l.second < r.second; })
-
-        for (int i=0; i<concentrationDico.size(); i++){
-          double thisSubstanceConcentration = get<0>(concentrationDico[i]);
-          if (thisSubstanceConcentration == 0) {
+        for(auto it = concentrationMap.begin(); it != concentrationMap.end(); ++it) {
+          if (it->second == 0) {
+            possibleCellType.push_back(it->first);
             nbOfZero++;
           }
-          if (thisSubstanceConcentration < smallestValue) {
-            smallestValue = thisSubstanceConcentration;
+          if (it->second < smallestValue) {
+            smallestValue = it->second;
           }
         }
 
         if (nbOfZero < 2) {
-          cellType = get<smallestValue>()
+          for(auto it = concentrationMap.begin(); it != concentrationMap.end(); ++it) {
+            if (it->second == smallestValue && random->Uniform(0, 1) < 0.1) {
+              cell->SetCellType(it->first);
+            }
+          }
         }
-        else {
-
+        else if (random->Uniform(0, 1) < 0.1) {
+          cell->SetCellType(possibleCellType[random->Uniform(0, possibleCellType.size())]);
         }
-
-
 
         // if no substances
         // random so all cell types doesn't create all randomly at step 1
