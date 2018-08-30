@@ -114,9 +114,9 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
           concentration = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
         }
 
-        double gradientWeight = 0.2; // cx3d: 0.2
-        double randomnessWeight = 0.2; // cx3d: 0.8
-        double oldDirectionWeight = 1.5; // cx3d: 0.75
+        double gradientWeight = 0.2;
+        double randomnessWeight = 0.2;
+        double oldDirectionWeight = 1.5;
         array<double, 3> random_axis = {random->Uniform(-1, 1),
                                         random->Uniform(-1, 1),
                                         random->Uniform(-1, 1)};
@@ -340,12 +340,14 @@ struct Chemotaxis : public BaseBiologyModule {
         auto* rm = sim->GetResourceManager();
         dg_0_ = rm->GetDiffusionGrid("on_diffusion");
         dg_1_ = rm->GetDiffusionGrid("off_diffusion");
+        dg_2_ = rm->GetDiffusionGrid("on_off_diffusion");
         init_ = true;
       }
 
       auto& position = cell->GetPosition();
       array<double, 3> gradient_0_;
       array<double, 3> gradient_1_;
+      array<double, 3> gradient_2_;
       array<double, 3> diff_gradient;
       array<double, 3> gradient_z;
       double concentration = 0;
@@ -422,10 +424,45 @@ struct Chemotaxis : public BaseBiologyModule {
       /* -- cell fate -- */
       // cell type attribution depending on concentrations
       if (cell->GetCellType() == -1) {  // if cell type is not on or off
-        dg_1_->GetGradient(position, &gradient_1_);
-        double concentration_1 = dg_1_->GetConcentration(position);
         dg_0_->GetGradient(position, &gradient_0_);
         double concentration_0 = dg_0_->GetConcentration(position);
+        dg_1_->GetGradient(position, &gradient_1_);
+        double concentration_1 = dg_1_->GetConcentration(position);
+        dg_2_->GetGradient(position, &gradient_2_);
+        double concentration_2 = dg_2_->GetConcentration(position);
+
+        map<string, double> concentrationMap;
+        concentrationDico["on"] = concentration_0;
+        concentrationDico["off"] = concentration_1;
+        concentrationDico["on_off"] = concentration_2;
+
+        int nbOfZero;
+        double smallestValue = 1e10;
+
+        auto it = min_element(pairs.begin(), pairs.end(),
+                    [](decltype(pairs)::value_type& l,
+                    decltype(pairs)::value_type& r) -> bool
+                    { return l.second < r.second; })
+
+        for (int i=0; i<concentrationDico.size(); i++){
+          double thisSubstanceConcentration = get<0>(concentrationDico[i]);
+          if (thisSubstanceConcentration == 0) {
+            nbOfZero++;
+          }
+          if (thisSubstanceConcentration < smallestValue) {
+            smallestValue = thisSubstanceConcentration;
+          }
+        }
+
+        if (nbOfZero < 2) {
+          cellType = get<smallestValue>()
+        }
+        else {
+
+        }
+
+
+
         // if no substances
         // random so all cell types doesn't create all randomly at step 1
         if (concentration_1 == 0 &&
@@ -460,6 +497,7 @@ struct Chemotaxis : public BaseBiologyModule {
   bool init_ = false;
   DiffusionGrid* dg_0_ = nullptr;
   DiffusionGrid* dg_1_ = nullptr;
+  DiffusionGrid* dg_2_ = nullptr;
   ClassDefNV(Chemotaxis, 1);
 };  // end biologyModule Chemotaxis
 
@@ -536,11 +574,14 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
     cell.AddBiologyModule(SubstanceSecretion<>());
     cell.AddBiologyModule(Chemotaxis<>());
 
-    auto&& ne = cell.ExtendNewNeurite({0, 0, 1});
-    ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
-    ne->GetSoPtr()->SetHasToRetract(false);
-    ne->GetSoPtr()->SetSleepMode(false);
-    ne->GetSoPtr()->SetBeyondThreshold(false);
+    // dendrite per cell: average=4.5; std=1.2
+    for (int i=0; i<=(int)random->Uniform(2,7); i++) {
+      auto&& ne = cell.ExtendNewNeurite({0, 0, 1});
+      ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
+      ne->GetSoPtr()->SetHasToRetract(false);
+      ne->GetSoPtr()->SetSleepMode(false);
+      ne->GetSoPtr()->SetBeyondThreshold(false);
+    }
 
     // container->push_back(new_simulation_object);
   }
@@ -671,7 +712,7 @@ inline int Simulate(int argc, const char** argv) {
   int maxStep = 801;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
-  int num_cells = 4400;
+  int num_cells = 1000; // 4400
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
@@ -690,11 +731,11 @@ inline int Simulate(int argc, const char** argv) {
   cout << "modelling with seed " << mySeed << endl;
 
   // min position, max position, number of cells , cell type
-  CellCreator(param->min_bound_, param->max_bound_, 1, 0);
+  CellCreator(param->min_bound_, param->max_bound_, 0, 0);
   cout << "on cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, 0, 1);
   cout << "off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 0, -1); // num_cells
+  CellCreator(param->min_bound_, param->max_bound_, num_cells, -1); // num_cells
   cout << "undifferentiated cells created" << endl;
 
   // 3. Define substances
@@ -706,11 +747,14 @@ inline int Simulate(int argc, const char** argv) {
                                     0.05, 0.99, param->max_bound_/10);
   ModelInitializer::DefineSubstance(1, "off_diffusion",
                                     0.05, 0.99, param->max_bound_/10);
+  ModelInitializer::DefineSubstance(2, "on_off_diffusion",
+                                    0.05, 0.99, param->max_bound_/10);
+
 
   // define substances for RGC dendrite attraction
-  ModelInitializer::DefineSubstance(2, "on_substance_RGC_guide",
+  ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide",
                                     0, 0, param->max_bound_/2);
-  ModelInitializer::DefineSubstance(3, "off_substance_RGC_guide",
+  ModelInitializer::DefineSubstance(4, "off_substance_RGC_guide",
                                     0, 0, param->max_bound_/2);
   // create substance gaussian distribution for RGC dendrite attraction
   // average peak distance for ON cells: 15.959 with std of 5.297;
