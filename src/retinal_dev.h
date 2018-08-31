@@ -396,13 +396,13 @@ struct Chemotaxis : public BaseBiologyModule {
       if (withMovement && cellClock >= 400) {
         // cell movement based on homotype substance gradient
         // 0. with cell death - 0. without
-        if (concentration >= 1.2849) {
+        if (concentration >= 1.2842) {
           cell->UpdatePosition(diff_gradient);
         }
       } // end tangential migration
 
       /* -- cell death -- */
-      if (withCellDeath && cellClock >= 400) {
+      if (withCellDeath && cellClock >= 400 && cellClock < 1000) {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
@@ -704,7 +704,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 1501;
+  int maxStep = 2001;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400; // 4400
