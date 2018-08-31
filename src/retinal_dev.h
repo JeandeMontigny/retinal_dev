@@ -384,25 +384,27 @@ struct Chemotaxis : public BaseBiologyModule {
         concentration = dg_2_->GetConcentration(position);
       }
 
-      // add small random movements
-      cell->UpdatePosition({random->Uniform(-0.1, 0.1),
-                            random->Uniform(-0.1, 0.1), 0});
-      // cell growth
-      if (cell->GetDiameter() < 15 && random->Uniform(0, 1) < 0.1) {
-        cell->ChangeVolume(0.1);
+      if (cellClock < 1400) {
+        // add small random movements
+        cell->UpdatePosition({random->Uniform(-0.1, 0.1),
+                              random->Uniform(-0.1, 0.1), 0});
+        // cell growth
+        if (cell->GetDiameter() < 14 && random->Uniform(0, 1) < 0.01) {
+          cell->ChangeVolume(5500);
+        }
       }
 
       /* -- cell movement -- */
-      if (withMovement && cellClock >= 400) {
+      if (withMovement && cellClock >= 200 && cellClock < 1600) {
         // cell movement based on homotype substance gradient
         // 0. with cell death - 0. without
-        if (concentration >= 1.2842) {
+        if (concentration >= 1.28427) { // 1.28428 - no artifact - ~4.5
           cell->UpdatePosition(diff_gradient);
         }
       } // end tangential migration
 
       /* -- cell death -- */
-      if (withCellDeath && cellClock >= 400 && cellClock < 1000) {
+      if (withCellDeath && cellClock >= 200 && cellClock < 1600) {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
@@ -704,7 +706,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 2001;
+  int maxStep = 1801;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400; // 4400
