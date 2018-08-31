@@ -332,7 +332,7 @@ struct Chemotaxis : public BaseBiologyModule {
     if (sim_object->template IsSoType<MyCell>()) {
       auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
-      bool withCellDeath = false; // run cell death mechanism
+      bool withCellDeath = true; // run cell death mechanism
       bool withMovement = false; // run tangential migration
 
       // if not initialised, initialise substance diffusions
@@ -353,6 +353,16 @@ struct Chemotaxis : public BaseBiologyModule {
       double concentration = 0;
       int cellClock = cell->GetInternalClock();
 
+      // if cell is type 0, concentration and gradient are substance 0
+      if (cell->GetCellType() == 0) {
+        dg_0_->GetGradient(position, &gradient_0_);
+        gradient_z = Math::ScalarMult(0.2, gradient_0_);
+        gradient_z[0] = 0;
+        gradient_z[1] = 0;
+        diff_gradient = Math::ScalarMult(-0.1, gradient_0_);
+        diff_gradient[2] = 0;
+        concentration = dg_0_->GetConcentration(position);
+      }
       // if cell is type 1, concentration and gradient are substance 1
       if (cell->GetCellType() == 1) {
         dg_1_->GetGradient(position, &gradient_1_);
@@ -363,15 +373,15 @@ struct Chemotaxis : public BaseBiologyModule {
         diff_gradient[2] = 0;
         concentration = dg_1_->GetConcentration(position);
       }
-      // if cell is type 0, concentration and gradient are substance 0
-      if (cell->GetCellType() == 0) {
-        dg_0_->GetGradient(position, &gradient_0_);
-        gradient_z = Math::ScalarMult(0.2, gradient_0_);
+      // if cell is type 2, concentration and gradient are substance 2
+      if (cell->GetCellType() == 2) {
+        dg_2_->GetGradient(position, &gradient_2_);
+        gradient_z = Math::ScalarMult(0.2, gradient_2_);
         gradient_z[0] = 0;
         gradient_z[1] = 0;
-        diff_gradient = Math::ScalarMult(-0.1, gradient_0_);
+        diff_gradient = Math::ScalarMult(-0.1, gradient_2_);
         diff_gradient[2] = 0;
-        concentration = dg_0_->GetConcentration(position);
+        concentration = dg_2_->GetConcentration(position);
       }
 
       // add small random movements
@@ -397,11 +407,17 @@ struct Chemotaxis : public BaseBiologyModule {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        // with cell fate: 0.11
+        // with cell fate: 0.10000
         // with cell movement:
         // with cell fate and cell movement:
-        if (concentration >= 0.11 && random->Uniform(0, 1) < 0.1) {
-          cell->RemoveFromSimulation();
+
+        // cout << setprecision (32) << concentration << endl;
+
+        // 0.10000995200070000000050105 - 0.100009952000700000000501
+
+        // 1.29208800011691 - 1.2920880001169
+        if (concentration > 1.292 && random->Uniform(0, 1) < 0.01) {
+         cell->RemoveFromSimulation();
         }
 
         // cell death for homotype cells in contact
@@ -424,7 +440,7 @@ struct Chemotaxis : public BaseBiologyModule {
       /* -- cell fate -- */
       // cell type attribution depending on concentrations
       // if cell in undifferentiated; random so don't change simultaneously
-      if (cell->GetCellType() == -1 && random->Uniform(0, 1) < 0.01) {
+      if (cell->GetCellType() == -1 && random->Uniform(0, 1) < 0.05) {
         dg_0_->GetGradient(position, &gradient_0_);
         double concentration_0 = dg_0_->GetConcentration(position);
         dg_1_->GetGradient(position, &gradient_1_);
@@ -505,15 +521,15 @@ struct SubstanceSecretion : public BaseBiologyModule {
       auto& secretion_position = cell->GetPosition();
       // if on cell, secrete on cells substance
       if (cell->GetCellType() == 0) {
-        dg_0_->IncreaseConcentrationBy(secretion_position, 0.1);
+        dg_0_->IncreaseConcentrationBy(secretion_position, 1);
       }
       // is off cell, secrete off cells substance
       else if (cell->GetCellType() == 1) {
-        dg_1_->IncreaseConcentrationBy(secretion_position, 0.1);
+        dg_1_->IncreaseConcentrationBy(secretion_position, 1);
       }
       // is on-off cell, secrete on-off cells substance
       else if (cell->GetCellType() == 2) {
-        dg_2_->IncreaseConcentrationBy(secretion_position, 0.1);
+        dg_2_->IncreaseConcentrationBy(secretion_position, 1);
       }
     }
   }
@@ -695,7 +711,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 801;
+  int maxStep = 1501;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400; // 4400
@@ -730,11 +746,11 @@ inline int Simulate(int argc, const char** argv) {
   // if decay_constant is high, diffusion distance is short
   // resolution is number of point in one domaine dimension
   ModelInitializer::DefineSubstance(0, "on_diffusion",
-                                    0.05, 0.99, param->max_bound_/10);
+                                    1, 0.5, param->max_bound_/10);
   ModelInitializer::DefineSubstance(1, "off_diffusion",
-                                    0.05, 0.99, param->max_bound_/10);
+                                    1, 0.5, param->max_bound_/10);
   ModelInitializer::DefineSubstance(2, "on_off_diffusion",
-                                    0.05, 0.99, param->max_bound_/10);
+                                    1, 0.5, param->max_bound_/10);
 
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide",
