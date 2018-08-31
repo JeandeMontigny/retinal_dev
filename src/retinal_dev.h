@@ -333,7 +333,7 @@ struct Chemotaxis : public BaseBiologyModule {
       auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
       bool withCellDeath = true; // run cell death mechanism
-      bool withMovement = false; // run tangential migration
+      bool withMovement = true; // run tangential migration
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -385,10 +385,10 @@ struct Chemotaxis : public BaseBiologyModule {
       }
 
       // add small random movements
-      // cell->UpdatePosition({random->Uniform(-0.1, 0.1),
-      //                       random->Uniform(-0.1, 0.1), 0});
+      cell->UpdatePosition({random->Uniform(-0.1, 0.1),
+                            random->Uniform(-0.1, 0.1), 0});
       // cell growth
-      if (cell->GetDiameter() < 15 && random->Uniform(0, 1) < 0.01) {
+      if (cell->GetDiameter() < 15 && random->Uniform(0, 1) < 0.1) {
         cell->ChangeVolume(0.1);
       }
 
@@ -396,20 +396,20 @@ struct Chemotaxis : public BaseBiologyModule {
       if (withMovement && cellClock >= 400) {
         // cell movement based on homotype substance gradient
         // 0. with cell death - 0. without
-        if (concentration >= 1.25) {
+        if (concentration >= 1.2849) {
           cell->UpdatePosition(diff_gradient);
         }
       } // end tangential migration
 
       /* -- cell death -- */
-      if (withCellDeath && cellClock >= 400 && cellClock < 2000) {
+      if (withCellDeath && cellClock >= 400) {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        // with cell fate: 1.29208800011691 - 1.2920880001169
+        // with cell fate: 1.29208800011691 - 1.2920880001169 - 1.29
         // with cell movement:
         // with cell fate and cell movement:
-        if (concentration > 1.29 && random->Uniform(0, 1) < 0.01) {
+        if (concentration > 1.285 && random->Uniform(0, 1) < 0.01) {
          cell->RemoveFromSimulation();
         }
 
