@@ -423,7 +423,8 @@ struct Chemotaxis : public BaseBiologyModule {
 
       /* -- cell fate -- */
       // cell type attribution depending on concentrations
-      if (cell->GetCellType() == -1) {  // if cell type is not on or off
+      // if cell in undifferentiated; random so don't change simultaneously
+      if (cell->GetCellType() == -1 && random->Uniform(0, 1) < 0.1) {
         dg_0_->GetGradient(position, &gradient_0_);
         double concentration_0 = dg_0_->GetConcentration(position);
         dg_1_->GetGradient(position, &gradient_1_);
@@ -439,49 +440,29 @@ struct Chemotaxis : public BaseBiologyModule {
         vector<int> possibleCellType;
         int nbOfZero = 0;
         double smallestValue = 1e10;
+        int smallestConcentrationType = -1;
 
-        for(auto it = concentrationMap.begin(); it != concentrationMap.end(); ++it) {
+        for(auto it = concentrationMap.begin();
+            it != concentrationMap.end(); ++it) {
           if (it->second == 0) {
             possibleCellType.push_back(it->first);
             nbOfZero++;
           }
           if (it->second < smallestValue) {
             smallestValue = it->second;
+            smallestConcentrationType = it->first;
           }
         }
 
         if (nbOfZero < 2) {
-          for(auto it = concentrationMap.begin(); it != concentrationMap.end(); ++it) {
-            if (it->second == smallestValue && random->Uniform(0, 1) < 0.1) {
-              cell->SetCellType(it->first);
-            }
-          }
+          cell->SetCellType(smallestConcentrationType);
         }
-        else if (random->Uniform(0, 1) < 0.1) {
+        else {
           cell->SetCellType(possibleCellType[random->Uniform(0, possibleCellType.size())]);
         }
+      } // end cell type = -1
 
-        // if no substances
-        // random so all cell types doesn't create all randomly at step 1
-        if (concentration_1 == 0 &&
-          concentration_0 == 0 && random->Uniform(0, 1) < 0.0001) {
-          // random attribution of a cell type
-          cell->SetCellType((int)random->Uniform(0, 2));
-        }
-        // if [Off substance] > [On substance] - 1e-8 for diffusion = 0.02
-        // random so all cell doesn't choose their type in the same time
-        if (concentration_1 > 1e-8 && concentration_1 > concentration_0
-          && random->Uniform(0, 1) < 0.1) {
-            cell->SetCellType(0); // cell become on
-        }
-        // if [On substance] > [Off substance]
-        // random so cells don't choose their type in the same time
-        if (concentration_0 > 1e-8 && concentration_0 > concentration_1
-          && random->Uniform(0, 1) < 0.1) {
-            cell->SetCellType(1); // cell become off
-        }
-      }  // end cell type = -1
-
+      /* -- internal clock -- */
       // probability to increase internal clock
       if (random->Uniform(0, 1) < 0.96) {
         // update cell internal clock
@@ -517,16 +498,21 @@ struct SubstanceSecretion : public BaseBiologyModule {
         auto* rm = sim->GetResourceManager();
         dg_0_ = rm->GetDiffusionGrid("on_diffusion");
         dg_1_ = rm->GetDiffusionGrid("off_diffusion");
+        dg_2_ = rm->GetDiffusionGrid("on_off_diffusion");
         init_ = true;
       }
       auto& secretion_position = cell->GetPosition();
-      // if off cell, secrete off cells substance
-      if (cell->GetCellType() == 1) {
+      // if on cell, secrete on cells substance
+      if (cell->GetCellType() == 0) {
+        dg_0_->IncreaseConcentrationBy(secretion_position, 0.1);
+      }
+      // is off cell, secrete off cells substance
+      else if (cell->GetCellType() == 1) {
         dg_1_->IncreaseConcentrationBy(secretion_position, 0.1);
       }
-      // is on cell, secrete on cells substance
-      else if (cell->GetCellType() == 0) {
-        dg_0_->IncreaseConcentrationBy(secretion_position, 0.1);
+      // is on-off cell, secrete on-off cells substance
+      else if (cell->GetCellType() == 2) {
+        dg_2_->IncreaseConcentrationBy(secretion_position, 0.1);
       }
     }
   }
@@ -535,6 +521,7 @@ struct SubstanceSecretion : public BaseBiologyModule {
   bool init_ = false;
   DiffusionGrid* dg_0_ = nullptr;
   DiffusionGrid* dg_1_ = nullptr;
+  DiffusionGrid* dg_2_ = nullptr;
   ClassDefNV(SubstanceSecretion, 1);
 };  // end biologyModule SubstanceSecretion
 
@@ -573,13 +560,13 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
     cell.AddBiologyModule(Chemotaxis<>());
 
     // dendrite per cell: average=4.5; std=1.2
-    for (int i=0; i<=(int)random->Uniform(2,7); i++) {
-      auto&& ne = cell.ExtendNewNeurite({0, 0, 1});
-      ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
-      ne->GetSoPtr()->SetHasToRetract(false);
-      ne->GetSoPtr()->SetSleepMode(false);
-      ne->GetSoPtr()->SetBeyondThreshold(false);
-    }
+    // for (int i=0; i<=(int)random->Uniform(2,7); i++) {
+    //   auto&& ne = cell.ExtendNewNeurite({0, 0, 1});
+    //   ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
+    //   ne->GetSoPtr()->SetHasToRetract(false);
+    //   ne->GetSoPtr()->SetSleepMode(false);
+    //   ne->GetSoPtr()->SetBeyondThreshold(false);
+    // }
 
     // container->push_back(new_simulation_object);
   }
@@ -710,7 +697,7 @@ inline int Simulate(int argc, const char** argv) {
   int maxStep = 801;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
-  int num_cells = 1000; // 4400
+  int num_cells = 4400; // 4400
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
@@ -748,7 +735,6 @@ inline int Simulate(int argc, const char** argv) {
   ModelInitializer::DefineSubstance(2, "on_off_diffusion",
                                     0.05, 0.99, param->max_bound_/10);
 
-
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide",
                                     0, 0, param->max_bound_/2);
@@ -780,6 +766,7 @@ inline int Simulate(int argc, const char** argv) {
   int numberOfCells = my_cells->size();
   int numberOfCells0 = 0;
   int numberOfCells1 = 0;
+  int numberOfCells2 = 0;
   int numberOfDendrites = 0;
 
   for (int i = 0; i < maxStep; i++) {
@@ -788,9 +775,9 @@ inline int Simulate(int argc, const char** argv) {
     if (i % 10 == 0) {  // write RI in file
       double RIon = getRI(0);
       double RIoff = getRI(1);
-      //        cout << "RI on: " << RIon << " ; RI off: " << RIoff << endl;
+      double RIonOff = getRI(2);
       if (writeRI) {
-        outputFile << RIon << " " << RIoff << "\n";
+        outputFile << RIon << " " << RIoff << " " << RIonOff << "\n";
       }
 
       if (i % 100 == 0) {  // print
@@ -798,8 +785,10 @@ inline int Simulate(int argc, const char** argv) {
         rm = simulation.GetResourceManager();
         my_cells = rm->template Get<MyCell>();
         numberOfCells = my_cells->size();
+        // TODO: vector for unknow number of cell type
         numberOfCells0 = 0;
         numberOfCells1 = 0;
+        numberOfCells2 = 0;
         numberOfDendrites = 0;
 
         for (int cellNum = 0; cellNum < numberOfCells;
@@ -810,6 +799,8 @@ inline int Simulate(int argc, const char** argv) {
             numberOfCells0++;
           } else if (thisCellType == 1) {
             numberOfCells1++;
+          } else if (thisCellType == 2) {
+            numberOfCells2++;
           }
         }
         cout << "-- step " << i << " out of " << maxStep << " --\n"
@@ -817,10 +808,14 @@ inline int Simulate(int argc, const char** argv) {
              << (1 - ((double)numberOfCells / num_cells)) * 100
              << "% of cell death\n"
              << numberOfCells0 << " cells are type 0 (on) ; "
-             << numberOfCells1 << " cells are type 1 (off)\n"
+             << numberOfCells1 << " cells are type 1 (off) ; "
+             << numberOfCells2 << " cells are type 2 (on-off) ; "
+             << (numberOfCells0+numberOfCells1+numberOfCells2)/numberOfCells*100
+             << "% got type\n"
              << numberOfDendrites << " dendrites in simulation\n"
              << "RI on: " << RIon << " ; RI off: " << RIoff
-             << " ; mean: " << (RIon + RIoff) / 2 << endl;
+             << " ; RI on-off: " << RIonOff
+             << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;
       } // end every 100 simu steps
     } // end every 10 simu steps
 
