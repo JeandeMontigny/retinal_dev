@@ -409,7 +409,7 @@ struct Chemotaxis : public BaseBiologyModule {
         // with cell fate: 1.29208800011691 - 1.2920880001169
         // with cell movement:
         // with cell fate and cell movement:
-        if (concentration > 1.29208800011691 && random->Uniform(0, 1) < 0.1) {
+        if (concentration > 1.29 && random->Uniform(0, 1) < 0.01) {
          cell->RemoveFromSimulation();
         }
 
