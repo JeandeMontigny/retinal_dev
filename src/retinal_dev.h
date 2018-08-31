@@ -396,8 +396,7 @@ struct Chemotaxis : public BaseBiologyModule {
       if (withMovement && cellClock >= 400) {
         // cell movement based on homotype substance gradient
         // 0. with cell death - 0. without
-        // 10100755032 too much - 1010075504 not enough
-        if (concentration >= 0.10100755034) {
+        if (concentration >= 1.25) {
           cell->UpdatePosition(diff_gradient);
         }
       } // end tangential migration
@@ -407,16 +406,10 @@ struct Chemotaxis : public BaseBiologyModule {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        // with cell fate: 0.10000
+        // with cell fate: 1.29208800011691 - 1.2920880001169
         // with cell movement:
         // with cell fate and cell movement:
-
-        // cout << setprecision (32) << concentration << endl;
-
-        // 0.10000995200070000000050105 - 0.100009952000700000000501
-
-        // 1.29208800011691 - 1.2920880001169
-        if (concentration > 1.292 && random->Uniform(0, 1) < 0.01) {
+        if (concentration > 1.29208800011691 && random->Uniform(0, 1) < 0.1) {
          cell->RemoveFromSimulation();
         }
 
