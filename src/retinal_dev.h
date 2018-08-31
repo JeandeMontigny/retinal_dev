@@ -424,7 +424,7 @@ struct Chemotaxis : public BaseBiologyModule {
       /* -- cell fate -- */
       // cell type attribution depending on concentrations
       // if cell in undifferentiated; random so don't change simultaneously
-      if (cell->GetCellType() == -1 && random->Uniform(0, 1) < 0.1) {
+      if (cell->GetCellType() == -1 && random->Uniform(0, 1) < 0.01) {
         dg_0_->GetGradient(position, &gradient_0_);
         double concentration_0 = dg_0_->GetConcentration(position);
         dg_1_->GetGradient(position, &gradient_1_);
@@ -446,6 +446,7 @@ struct Chemotaxis : public BaseBiologyModule {
             it != concentrationMap.end(); ++it) {
           if (it->second == 0) {
             possibleCellType.push_back(it->first);
+            smallestConcentrationType = it->first;
             nbOfZero++;
           }
           if (it->second < smallestValue) {
@@ -810,7 +811,8 @@ inline int Simulate(int argc, const char** argv) {
              << numberOfCells0 << " cells are type 0 (on) ; "
              << numberOfCells1 << " cells are type 1 (off) ; "
              << numberOfCells2 << " cells are type 2 (on-off) ; "
-             << (numberOfCells0+numberOfCells1+numberOfCells2)/numberOfCells*100
+             << (double)(numberOfCells0+numberOfCells1+numberOfCells2)
+                 /numberOfCells*100
              << "% got type\n"
              << numberOfDendrites << " dendrites in simulation\n"
              << "RI on: " << RIon << " ; RI off: " << RIoff
