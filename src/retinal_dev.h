@@ -114,7 +114,7 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
           dg_off_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
           concentration = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
         }
-        if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 1) {
+        if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 2) {
           double conc_on = dg_on_RGCguide_->GetConcentration(ne->GetPosition());
           double conc_off = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
           if (conc_on > conc_off) {
@@ -729,7 +729,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 2001;
+  int maxStep = 3001;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400; // 4400
@@ -751,11 +751,13 @@ inline int Simulate(int argc, const char** argv) {
   cout << "modelling with seed " << mySeed << endl;
 
   // min position, max position, number of cells , cell type
-  CellCreator(param->min_bound_, param->max_bound_, 0, 0);
+  CellCreator(param->min_bound_, param->max_bound_, 1, 0);
   cout << "on cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 0, 1);
+  CellCreator(param->min_bound_, param->max_bound_, 1, 1);
   cout << "off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, num_cells, -1); // num_cells
+  CellCreator(param->min_bound_, param->max_bound_, 1, 2);
+  cout << "on-off cells created" << endl;
+  CellCreator(param->min_bound_, param->max_bound_, 0, -1); // num_cells
   cout << "undifferentiated cells created" << endl;
 
   // 3. Define substances
@@ -777,11 +779,13 @@ inline int Simulate(int argc, const char** argv) {
                                     0, 0, param->max_bound_/2);
   // create substance gaussian distribution for RGC dendrite attraction
   // average peak distance for ON cells: 15.959 with std of 5.297;
+  // 46
   ModelInitializer::InitializeSubstance(2, "on_substance_RGC_guide",
-                                        GaussianBand(46, 6, Axis::kZAxis));
+                                        GaussianBand(41, 6, Axis::kZAxis));
   // average peak distance for OFF cells: 40.405 with std of 8.39;
+  // 70
   ModelInitializer::InitializeSubstance(3, "off_substance_RGC_guide",
-                                        GaussianBand(70, 8, Axis::kZAxis));
+                                        GaussianBand(65, 8, Axis::kZAxis));
   cout << "substances initialised" << endl;
 
   // set write output param
