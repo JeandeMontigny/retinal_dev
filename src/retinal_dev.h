@@ -593,18 +593,8 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
     cell.SetInternalClock(0);
     cell.AddBiologyModule(SubstanceSecretion<>());
     cell.AddBiologyModule(Chemotaxis<>());
-
-    // dendrite per cell: average=4.5; std=1.2
-    // for (int i=0; i<=(int)random->Uniform(2,7); i++) {
-    //   auto&& ne = cell.ExtendNewNeurite({0, 0, 1});
-    //   ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
-    //   ne->GetSoPtr()->SetHasToRetract(false);
-    //   ne->GetSoPtr()->SetSleepMode(false);
-    //   ne->GetSoPtr()->SetBeyondThreshold(false);
-    // }
-
-    // container->push_back(new_simulation_object);
   }
+
   container->Commit();
 }  // end CellCreator
 
@@ -614,19 +604,28 @@ inline void position_exporteur(int i) {
   int seed = TSimulation::GetActive()->GetRandom()->GetSeed();
   ofstream positionFileOn;
   ofstream positionFileOff;
+  ofstream positionFileOnOff;
   ofstream positionFileAll;
   stringstream sstmOn;
   stringstream sstmOff;
+  stringstream sstmOnOff;
   stringstream sstmAll;
-  sstmOn << "on_t" << i << "_seed" << seed << ".txt";
-  sstmOff << "off_t" << i << "_seed" << seed << ".txt";
-  sstmAll << "all_t" << i << "_seed" << seed << ".txt";
+  sstmOn << Concat(Param::kOutputDir, "/cellPosition/on_t") << i
+         << "_seed" << seed << ".txt";
+  sstmOff << Concat(Param::kOutputDir, "/cellPosition/off_t") << i
+          << "_seed" << seed << ".txt";
+  sstmOnOff << Concat(Param::kOutputDir, "/cellPosition/onOff_t") << i
+            << "_seed" << seed << ".txt";
+  sstmAll << Concat(Param::kOutputDir, "/cellPosition/all_t") << i
+            << "_seed" << seed << ".txt";
 
   string fileNameOn = sstmOn.str();
   string fileNameOff = sstmOff.str();
+  string fileNameOnOff = sstmOnOff.str();
   string fileNameAll = sstmAll.str();
   positionFileOn.open(fileNameOn);
   positionFileOff.open(fileNameOff);
+  positionFileOnOff.open(fileNameOnOff);
   positionFileAll.open(fileNameAll);
 
   auto* sim = TSimulation::GetActive();
@@ -638,22 +637,31 @@ inline void position_exporteur(int i) {
     auto thisCellType = (*my_cells)[cellNum].GetCellType();
     auto position = (*my_cells)[cellNum].GetPosition();
     if (thisCellType == 0) {
-      positionFileOn << position[0] << " " << position[1] << "\n";
+      positionFileOn << position[0] << " " << position[1] << " "
+                     << position[2] << "\n";
       positionFileAll << position[0] << " " << position[1] << " "
                       << position[2] << " on\n";
     }
     else if (thisCellType == 1) {
-      positionFileOff << position[0] << " " << position[1] << "\n";
+      positionFileOff << position[0] << " " << position[1] << " "
+                      << position[2] << "\n";
       positionFileAll << position[0] << " " << position[1] << " "
                       << position[2] << " off\n";
     }
+    else if (thisCellType == 2) {
+      positionFileOnOff << position[0] << " " << position[1] << " "
+                        << position[2] << "\n";
+      positionFileAll << position[0] << " " << position[1] << " "
+                      << position[2] << " onoff\n";
+    }
     else {
-    positionFileAll << position[0] << " " << position[1] << " "
-                    << position[2] << " nd\n";
+      positionFileAll << position[0] << " " << position[1] << " "
+                      << position[2] << " nd\n";
     }
   }
   positionFileOn.close();
   positionFileOff.close();
+  positionFileOnOff.close();
   positionFileAll.close();
 }  // end position_exporteur
 
@@ -664,7 +672,7 @@ inline double computeRI(vector<array<double, 3>> coordList) {
        i++) {  // for each cell of same type in the simulation
     array<double, 3> cellPosition = coordList[i];
 
-    double shortestDist = 9999;
+    double shortestDist = 1e10;
     // for each other cell of same type in the simulation
     for (unsigned int j = 0; j < coordList.size();  j++) {
       array<double, 3> otherCellPosition = coordList[j];
@@ -729,7 +737,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 3001;
+  int maxStep = 3000;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400; // 4400
@@ -743,7 +751,13 @@ inline int Simulate(int argc, const char** argv) {
   // set min and max length for neurite segments
   param->neurite_min_length_ = 1.0;
   param->neurite_max_length_ = 2.0;
-//  param->kOutputDir = "myOutput";
+
+  // set write output param
+  // if you want to write file for RI and cell position
+  bool writeRI = false;
+  bool writePositionExport = false;
+  // create cell position files every outputFrequence steps
+  int outputFrequence = 100;
 
   int mySeed = rand() % 10000;
   mySeed = 9784;  // 9784
@@ -751,13 +765,13 @@ inline int Simulate(int argc, const char** argv) {
   cout << "modelling with seed " << mySeed << endl;
 
   // min position, max position, number of cells , cell type
-  CellCreator(param->min_bound_, param->max_bound_, 1, 0);
+  CellCreator(param->min_bound_, param->max_bound_, 0, 0);
   cout << "on cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 1, 1);
+  CellCreator(param->min_bound_, param->max_bound_, 0, 1);
   cout << "off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 1, 2);
+  CellCreator(param->min_bound_, param->max_bound_, 0, 2);
   cout << "on-off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 0, -1); // num_cells
+  CellCreator(param->min_bound_, param->max_bound_, num_cells, -1); // num_cells
   cout << "undifferentiated cells created" << endl;
 
   // 3. Define substances
@@ -779,36 +793,33 @@ inline int Simulate(int argc, const char** argv) {
                                     0, 0, param->max_bound_/2);
   // create substance gaussian distribution for RGC dendrite attraction
   // average peak distance for ON cells: 15.959 with std of 5.297;
-  // 46
-  ModelInitializer::InitializeSubstance(2, "on_substance_RGC_guide",
-                                        GaussianBand(41, 6, Axis::kZAxis));
+  ModelInitializer::InitializeSubstance(3, "on_substance_RGC_guide",
+                                        GaussianBand(46, 6, Axis::kZAxis));
   // average peak distance for OFF cells: 40.405 with std of 8.39;
-  // 70
-  ModelInitializer::InitializeSubstance(3, "off_substance_RGC_guide",
-                                        GaussianBand(65, 8, Axis::kZAxis));
+  ModelInitializer::InitializeSubstance(4, "off_substance_RGC_guide",
+                                        GaussianBand(70, 8, Axis::kZAxis));
   cout << "substances initialised" << endl;
 
-  // set write output param
-  // if you want to write file for RI and cell position
-  bool writeRI = false;
-  bool writePositionExport = false;
-  // create cell position files every outputFrequence steps
-  int outputFrequence = 100;
+  // prepare export
   ofstream outputFile;
-
+  // delete previous simulation export
+  if (writePositionExport) {
+    if (system(Concat("rm -r ", Param::kOutputDir, "/cellPosition/*").c_str())) {
+      cout << "error in " << Param::kOutputDir
+           << "/cellPosition folder deletion" << endl;
+    }
+    if(system(Concat("mkdir -p ", Param::kOutputDir, "/cellPosition").c_str())) {
+      cout << "error in " << Param::kOutputDir
+           << "/cellPosition folder creation" << endl;
+    }
+  }
+  // create RI export file
   if (writeRI) {
-    outputFile.open("RI_" + to_string(mySeed) + ".txt");
+    outputFile.open("output/cellPosition/RI_" + to_string(mySeed) + ".txt");
   }
 
   // 4. Run simulation for maxStep timesteps
-  auto my_cells = rm->template Get<MyCell>();
-  int numberOfCells = my_cells->size();
-  int numberOfCells0 = 0;
-  int numberOfCells1 = 0;
-  int numberOfCells2 = 0;
-  int numberOfDendrites = 0;
-
-  for (int i = 0; i < maxStep; i++) {
+  for (int i = 0; i <= maxStep; i++) {
     scheduler->Simulate(1);
 
     if (i % 10 == 0) {  // write RI in file
@@ -822,13 +833,13 @@ inline int Simulate(int argc, const char** argv) {
       if (i % 100 == 0) {  // print
         // get cell list size
         rm = simulation.GetResourceManager();
-        my_cells = rm->template Get<MyCell>();
-        numberOfCells = my_cells->size();
+        auto my_cells = rm->template Get<MyCell>();
+        int numberOfCells = my_cells->size();
         // TODO: vector for unknow number of cell type
-        numberOfCells0 = 0;
-        numberOfCells1 = 0;
-        numberOfCells2 = 0;
-        numberOfDendrites = 0;
+        int numberOfCells0 = 0;
+        int numberOfCells1 = 0;
+        int numberOfCells2 = 0;
+        int numberOfDendrites = 0;
 
         for (int cellNum = 0; cellNum < numberOfCells;
              cellNum++) {  // for each cell in simulation
@@ -860,7 +871,8 @@ inline int Simulate(int argc, const char** argv) {
     } // end every 10 simu steps
 
     if (writePositionExport && i % outputFrequence == 0) {
-      position_exporteur(i); // export cell position
+      // export cell position
+      position_exporteur(i);
     }
 
   } // end for Simulate
