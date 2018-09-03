@@ -96,7 +96,8 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
       auto&& sim_objectNe = sim_object->template ReinterpretCast<MyNeurite>();
       auto ne = sim_objectNe.GetSoPtr();
 
-      if (ne->IsTerminal() && ne->GetDiameter() >= 0.6) {
+      if (ne->IsTerminal() && ne->GetDiameter() >= 0.6
+          && ne->GetNeuronSomaOfNeurite()->GetInternalClock() > 1600) {
         if (!init_) {
           dg_on_RGCguide_ = rm->GetDiffusionGrid("on_substance_RGC_guide");
           dg_off_RGCguide_ = rm->GetDiffusionGrid("off_substance_RGC_guide");
@@ -112,6 +113,17 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
         if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 1) {
           dg_off_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
           concentration = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
+        }
+        if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 1) {
+          double conc_on = dg_on_RGCguide_->GetConcentration(ne->GetPosition());
+          double conc_off = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
+          if (conc_on > conc_off) {
+            concentration = conc_on;
+            dg_on_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
+          } else {
+            concentration = conc_off;
+            dg_off_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
+          }
         }
 
         double gradientWeight = 0.2;
@@ -394,6 +406,17 @@ struct Chemotaxis : public BaseBiologyModule {
         }
       }
 
+      if (cellClock == 1600) {
+        // dendrite per cell: average=4.5; std=1.2
+        for (int i=0; i<=(int)random->Uniform(2,7); i++) {
+          auto&& ne = cell->ExtendNewNeurite({0, 0, 1});
+          ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
+          ne->GetSoPtr()->SetHasToRetract(false);
+          ne->GetSoPtr()->SetSleepMode(false);
+          ne->GetSoPtr()->SetBeyondThreshold(false);
+        }
+      }
+
       /* -- cell movement -- */
       if (withMovement && cellClock >= 200 && cellClock < 1600) {
         // cell movement based on homotype substance gradient
@@ -410,7 +433,7 @@ struct Chemotaxis : public BaseBiologyModule {
         // cell death depending on homotype substance concentration
         // with cell fate: 1.29208800011691 - 1.2920880001169 - 1.29
         // with cell movement:
-        // with cell fate and cell movement:
+        // with cell fate and cell movement: 1.285 - random < 0.01
         if (concentration > 1.285 && random->Uniform(0, 1) < 0.01) {
          cell->RemoveFromSimulation();
         }
@@ -706,7 +729,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 1801;
+  int maxStep = 2001;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400; // 4400
