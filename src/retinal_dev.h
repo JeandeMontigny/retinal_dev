@@ -682,7 +682,7 @@ inline void morpho_exporteur() {
                           cellNum, "_seed", seed, ".swc").c_str();
     swcFile.open(swcFileName);
 
-    labelSWC_=1;
+    labelSWC_ = 1;
     // swcFile << labelSWC_ << " 1 " << cellPosition[0] << " "
     //         << cellPosition[1]  << " " << cellPosition[2] << " "
     //         << cell->GetDiameter()/2 << " -1";
@@ -695,7 +695,8 @@ inline void morpho_exporteur() {
   } // end for cell in simulation
 } // end morpho_exporteur
 
-inline string swc_neurites(const MyNeurite ne, int labelParent, array<double, 3> somaPosition) {
+template <typename T>
+inline string swc_neurites(const T ne, int labelParent, array<double, 3> somaPosition) {
   array<double, 3> nePosition = ne->GetPosition();
   nePosition[0] = nePosition[0] - somaPosition[0];
   nePosition[1] = nePosition[1] - somaPosition[1];
