@@ -711,6 +711,7 @@ inline string swc_neurites(const T ne, int labelParent, array<double, 3> somaPos
   string temps;
 
   ne->GetNeuronSomaOfNeurite()->IncreaseLabel();
+  // set explicitly the value of GetLabel() other wise it is not properly set
   int currentLabel = ne->GetNeuronSomaOfNeurite()->GetLabel();
 
   // if branching point
@@ -953,7 +954,12 @@ inline int Simulate(int argc, const char** argv) {
 
   outputFile.close();
 
-  if (writeSWC) {
+  // remove previous swc files and export neurons morphology
+  if (writeSWC && !system(Concat("mkdir -p ",
+      Param::kOutputDir, "/swc_files").c_str())) {
+    if (system(Concat("rm -r ", Param::kOutputDir, "/swc_files/*").c_str())) {
+      cout << "could not delete previous swc files" << endl;
+    };
     morpho_exporteur();
   }
 
