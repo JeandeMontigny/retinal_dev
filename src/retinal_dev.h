@@ -33,7 +33,7 @@ using namespace std;
 
 // Define my custom cell MyCell extending NeuronSoma
 BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
-  BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_);
+  BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_, labelSWC_);
 
  public:
   MyCellExt() {}
@@ -48,9 +48,14 @@ BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
   void SetInternalClock(int t) { internal_clock_[kIdx] = t; }
   int GetInternalClock() const { return internal_clock_[kIdx]; }
 
+  inline void SetLabel(int label) { labelSWC_[kIdx] = label; }
+  inline int GetLabel() { return labelSWC_[kIdx]; }
+  inline void IncreaseLabel() { labelSWC_[kIdx] = labelSWC_[kIdx] + 1; }
+
  private:
   vec<int> cell_type_;
   vec<int> internal_clock_;
+  vec<int> labelSWC_;
 };
 
 // Define my custom neurite MyNeurite, which extends NeuriteElement
@@ -665,7 +670,7 @@ inline void position_exporteur(int i) {
   positionFileAll.close();
 }  // end position_exporteur
 
-int labelSWC_;
+
 template <typename TSimulation = Simulation<>>
 inline void morpho_exporteur() {
   auto* sim = TSimulation::GetActive();
@@ -673,20 +678,22 @@ inline void morpho_exporteur() {
   int seed = sim->GetRandom()->GetSeed();
   auto my_cells = rm->template Get<MyCell>();
 
-  for (int cellNum = 0; cellNum < my_cells->size(); cellNum++) {
-    auto& cell = (*my_cells)[cellNum];
+  for (unsigned int cellNum = 0; cellNum < my_cells->size(); cellNum++) {
+    auto&& cell = (*my_cells)[cellNum];
     int thisCellType = cell.GetCellType();
     auto cellPosition = cell.GetPosition();
     ofstream swcFile;
     string swcFileName = Concat(Param::kOutputDir, "/swc_files/cell",
-                          cellNum, "_seed", seed, ".swc").c_str();
+                          cellNum, "_type", thisCellType, "_seed",
+                          seed, ".swc").c_str();
     swcFile.open(swcFileName);
 
-    labelSWC_ = 1;
+    cell->SetLabel(1);
+
     // swcFile << labelSWC_ << " 1 " << cellPosition[0] << " "
     //         << cellPosition[1]  << " " << cellPosition[2] << " "
     //         << cell->GetDiameter()/2 << " -1";
-    swcFile << labelSWC_ << " 1 0 0 0 " << cell->GetDiameter()/2 << " -1";
+    swcFile << cell->GetLabel() << " 1 0 0 0 " << cell->GetDiameter()/2 << " -1";
 
     for (auto& ne : cell->GetDaughters()) {
       swcFile << swc_neurites(ne, 1, cellPosition);
@@ -701,33 +708,33 @@ inline string swc_neurites(const T ne, int labelParent, array<double, 3> somaPos
   nePosition[0] = nePosition[0] - somaPosition[0];
   nePosition[1] = nePosition[1] - somaPosition[1];
   nePosition[2] = nePosition[2] - somaPosition[2];
-
   string temps;
+
+  ne->GetNeuronSomaOfNeurite()->IncreaseLabel();
+  int currentLabel = ne->GetNeuronSomaOfNeurite()->GetLabel();
+
   // if branching point
   if (ne->GetDaughterRight() != nullptr) {
-    labelSWC_++;
     //FIXME: segment indice should be 5, no 3. If set here,
     // it's not the actual branching point, but the following segment
     // need to run correction.py to correct file
-    temps = Concat(temps,"\n", labelSWC_, " 3 ",
+    temps = Concat(temps,"\n", currentLabel, " 3 ",
             nePosition[0], " ", nePosition[1], " ", nePosition[2], " ",
             ne->GetDiameter()/2, " ", labelParent,
-            swc_neurites(ne->GetDaughterRight(),
-                         labelSWC_, somaPosition)).c_str();
+            swc_neurites(ne->GetDaughterRight(), currentLabel,
+                         somaPosition)).c_str();
   }
   // if is straigh dendrite
   if (ne->GetDaughterLeft() != nullptr) {
-    labelSWC_++;
-    temps = Concat(temps,"\n", labelSWC_, " 3 ",
+    temps = Concat(temps,"\n", currentLabel, " 3 ",
             nePosition[0], " ", nePosition[1], " ", nePosition[2], " ",
             ne->GetDiameter()/2, " ", labelParent,
-            swc_neurites(ne->GetDaughterLeft(),
-                         labelSWC_, somaPosition)).c_str();
+            swc_neurites(ne->GetDaughterLeft(), currentLabel,
+                         somaPosition)).c_str();
   }
   // if ending point
   if (ne->GetDaughterLeft() == nullptr && ne->GetDaughterRight() == nullptr) {
-    labelSWC_++;
-    temps = Concat(temps,"\n", labelSWC_, " 6 ",
+    temps = Concat(temps,"\n", currentLabel, " 6 ",
             nePosition[0], " ", nePosition[1], " ", nePosition[2], " ",
             ne->GetDiameter()/2, " ", labelParent).c_str();
   }
@@ -827,6 +834,7 @@ inline int Simulate(int argc, const char** argv) {
   // if you want to write file for RI and cell position
   bool writeRI = false;
   bool writePositionExport = false;
+  bool writeSWC = true;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
 
@@ -842,7 +850,7 @@ inline int Simulate(int argc, const char** argv) {
   cout << "off cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, 0, 2);
   cout << "on-off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, num_cells, -1); // num_cells
+  CellCreator(param->min_bound_, param->max_bound_, 20, -1); // num_cells
   cout << "undifferentiated cells created" << endl;
 
   // 3. Define substances
@@ -944,6 +952,10 @@ inline int Simulate(int argc, const char** argv) {
   } // end for Simulate
 
   outputFile.close();
+
+  if (writeSWC) {
+    morpho_exporteur();
+  }
 
   return 0;
 }
