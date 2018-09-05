@@ -101,8 +101,8 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
       auto&& sim_objectNe = sim_object->template ReinterpretCast<MyNeurite>();
       auto ne = sim_objectNe.GetSoPtr();
 
-      if (ne->IsTerminal() && ne->GetDiameter() >= 0.6
-          && ne->GetNeuronSomaOfNeurite()->GetInternalClock() > 1601) {
+      if (ne->IsTerminal() && ne->GetDiameter() >= 0.5
+          && ne->GetNeuronSomaOfNeurite()->GetInternalClock() > 1600) {
         if (!init_) {
           dg_on_RGCguide_ = rm->GetDiffusionGrid("on_substance_RGC_guide");
           dg_off_RGCguide_ = rm->GetDiffusionGrid("off_substance_RGC_guide");
@@ -133,7 +133,7 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
 
         double gradientWeight = 0.2;
         double randomnessWeight = 0.2;
-        double oldDirectionWeight = 1.5;
+        double oldDirectionWeight = 1.6;
         array<double, 3> random_axis = {random->Uniform(-1, 1),
                                         random->Uniform(-1, 1),
                                         random->Uniform(-1, 1)};
@@ -147,10 +147,11 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
             Math::Add(oldDirection, randomDirection), gradDirection);
 
         ne->ElongateTerminalEnd(25, newStepDirection);
-        ne->SetDiameter(ne->GetDiameter()-0.0005);
+        ne->SetDiameter(ne->GetDiameter()-0.0008);
 
-        if (concentration > 0.04 && random->Uniform() < 0.005) {
-          ne->SetDiameter(ne->GetDiameter()-0.001);
+        if (concentration > 0.04
+          && random->Uniform() < 0.0077*ne->GetDiameter()) {
+          ne->SetDiameter(ne->GetDiameter()-0.005);
           ne->Bifurcate();
         }
 
@@ -587,8 +588,8 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
   container->reserve(num_cells);
 
   for (int i = 0; i < num_cells; i++) {
-    double x = random->Uniform(min + 20, max - 20);
-    double y = random->Uniform(min + 20, max - 20);
+    double x = random->Uniform(min + 100, max - 100);
+    double y = random->Uniform(min + 100, max - 100);
     double z = random->Uniform(min + 20, 40);  // 24
     std::array<double, 3> position = {x, y, z};
 
@@ -816,17 +817,17 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   // number of simulation steps
-  int maxStep = 2200;
+  int maxStep = 3000;
   // Create an artificial bounds for the simulation space
-  int cubeDim = 500;
-  int num_cells = 4400; // 4400
+  int cubeDim = 250; // 500
+  int num_cells = 1100; // 4400
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
-  // cell are created with +20 to min and -20 to max
+  // cell are created with +100 to min and -100 to max
   param->bound_space_ = true;
   param->min_bound_ = 0;
-  param->max_bound_ = cubeDim + 40;
+  param->max_bound_ = cubeDim + 200;
   // set min and max length for neurite segments
   param->neurite_min_length_ = 1.0;
   param->neurite_max_length_ = 2.0;
@@ -851,7 +852,7 @@ inline int Simulate(int argc, const char** argv) {
   cout << "off cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, 0, 2);
   cout << "on-off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 20, -1); // num_cells
+  CellCreator(param->min_bound_, param->max_bound_, num_cells, -1); // num_cells
   cout << "undifferentiated cells created" << endl;
 
   // 3. Define substances
@@ -874,10 +875,10 @@ inline int Simulate(int argc, const char** argv) {
   // create substance gaussian distribution for RGC dendrite attraction
   // average peak distance for ON cells: 15.959 with std of 5.297;
   ModelInitializer::InitializeSubstance(3, "on_substance_RGC_guide",
-                                        GaussianBand(46, 6, Axis::kZAxis));
+                                        GaussianBand(45, 6, Axis::kZAxis));
   // average peak distance for OFF cells: 40.405 with std of 8.39;
   ModelInitializer::InitializeSubstance(4, "off_substance_RGC_guide",
-                                        GaussianBand(70, 8, Axis::kZAxis));
+                                        GaussianBand(69, 8, Axis::kZAxis));
   cout << "substances initialised" << endl;
 
   // prepare export
