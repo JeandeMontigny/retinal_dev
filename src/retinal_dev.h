@@ -150,7 +150,7 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
         ne->SetDiameter(ne->GetDiameter()-0.0008);
 
         if (concentration > 0.04
-          && random->Uniform() < 0.0077*ne->GetDiameter()) {
+          && random->Uniform() < 0.0095*ne->GetDiameter()) {
           ne->SetDiameter(ne->GetDiameter()-0.005);
           ne->Bifurcate();
         }
@@ -819,8 +819,8 @@ inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
   int maxStep = 3000;
   // Create an artificial bounds for the simulation space
-  int cubeDim = 250; // 500
-  int num_cells = 1100; // 4400
+  int cubeDim = 500;
+  int num_cells = 4400;
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
@@ -939,7 +939,8 @@ inline int Simulate(int argc, const char** argv) {
              << (double)(numberOfCells0+numberOfCells1+numberOfCells2)
                  /numberOfCells*100
              << "% got type\n"
-             << numberOfDendrites << " dendrites in simulation\n"
+             << numberOfDendrites << " apical dendrites in simulation: "
+             << numberOfDendrites/numberOfCells << " dendrites per cell\n"
              << "RI on: " << RIon << " ; RI off: " << RIoff
              << " ; RI on-off: " << RIonOff
              << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;
