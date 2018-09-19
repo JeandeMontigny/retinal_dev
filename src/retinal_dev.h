@@ -60,7 +60,7 @@ BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
 
 // Define my custom neurite MyNeurite, which extends NeuriteElement
 BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
-  BDM_SIM_OBJECT_HEADER(MyNeuriteExt, 1, has_to_retract_, beyond_threshold_, sleep_mode_, diam_before_retract_);
+  BDM_SIM_OBJECT_HEADER(MyNeuriteExt, 1, has_to_retract_, beyond_threshold_, sleep_mode_, diam_before_retract_, subtype_);
 
 public:
   MyNeuriteExt() {}
@@ -78,11 +78,17 @@ public:
   void SetDiamBeforeRetraction(double d) { diam_before_retract_[kIdx] = d; }
   double GetDiamBeforeRetraction() const { return diam_before_retract_[kIdx]; }
 
+  void SetSubtype(int st) { subtype_[kIdx] = st; }
+  int GetSubtype() { return subtype_[kIdx]; }
+  //ParaView
+  int* GetSubtypePtr() { return subtype_.data(); }
+
  private:
   vec<bool> has_to_retract_;
   vec<bool> beyond_threshold_;
   vec<bool> sleep_mode_;
   vec<int> diam_before_retract_;
+  vec<int> subtype_;
 };
 
 
@@ -131,28 +137,72 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
           }
         }
 
-        double gradientWeight = 0.2;
-        double randomnessWeight = 0.2;
-        double oldDirectionWeight = 1.6;
-        array<double, 3> random_axis = {random->Uniform(-1, 1),
-                                        random->Uniform(-1, 1),
-                                        random->Uniform(-1, 1)};
-        auto oldDirection =
-            Math::ScalarMult(oldDirectionWeight, ne->GetSpringAxis());
-        auto gradDirection = Math::ScalarMult(
-            gradientWeight, Math::Normalize(gradient_RGCguide));
-        auto randomDirection =
-            Math::ScalarMult(randomnessWeight, random_axis);
-        array<double, 3> newStepDirection = Math::Add(
-            Math::Add(oldDirection, randomDirection), gradDirection);
+        // if neurite doesn't have to retract
+        if (!ne->GetHasToRetract()) {
+          double gradientWeight = 0.2;
+          double randomnessWeight = 0.2;
+          double oldDirectionWeight = 1.6;
+          array<double, 3> random_axis = {random->Uniform(-1, 1),
+                                          random->Uniform(-1, 1),
+                                          random->Uniform(-1, 1)};
+          auto oldDirection =
+              Math::ScalarMult(oldDirectionWeight, ne->GetSpringAxis());
+          auto gradDirection = Math::ScalarMult(
+              gradientWeight, Math::Normalize(gradient_RGCguide));
+          auto randomDirection =
+              Math::ScalarMult(randomnessWeight, random_axis);
+          array<double, 3> newStepDirection = Math::Add(
+              Math::Add(oldDirection, randomDirection), gradDirection);
 
-        ne->ElongateTerminalEnd(25, newStepDirection);
-        ne->SetDiameter(ne->GetDiameter()-0.0008);
+          ne->ElongateTerminalEnd(25, newStepDirection);
+          ne->SetDiameter(ne->GetDiameter()-0.0008);
 
-        if (concentration > 0.04
-          && random->Uniform() < 0.0095*ne->GetDiameter()) {
-          ne->SetDiameter(ne->GetDiameter()-0.005);
-          ne->Bifurcate();
+          if (concentration > 0.04
+            && random->Uniform() < 0.0095*ne->GetDiameter()) {
+            ne->SetDiameter(ne->GetDiameter()-0.005);
+            ne->Bifurcate();
+          }
+
+          // homo-type interaction
+          int ownType = 0;
+          int otherType = 0;
+          // lambda updating counters for neighbor neurites
+          auto countNeighbours = [&](auto&& neighbor, SoHandle neighbor_handle) {
+            // if neighbor is a NeuriteElement
+            if (neighbor->template IsSoType<MyNeurite>()) {
+              auto&& neighbor_rc = neighbor->template
+                ReinterpretCast<MyNeurite>();
+              auto n_soptr = neighbor_rc->GetSoPtr();
+              // if not a direct relative but same cell type
+              if (n_soptr->GetNeuronSomaOfNeurite() !=
+                  ne->GetNeuronSomaOfNeurite() &&
+                  n_soptr->GetNeuronSomaOfNeurite()->GetCellType() ==
+                  ne->GetNeuronSomaOfNeurite()->GetCellType()) {
+                ownType++;
+              }
+              else if (n_soptr->GetNeuronSomaOfNeurite() !=
+                  ne->GetNeuronSomaOfNeurite() &&
+                  n_soptr->GetNeuronSomaOfNeurite()->GetCellType() !=
+                  ne->GetNeuronSomaOfNeurite()->GetCellType()) {
+                otherType++;
+              }
+            }
+          }; // end lambda
+
+          auto* grid = sim->GetGrid();
+          grid->ForEachNeighborWithinRadius(
+            countNeighbours, ne, ne->GetSoHandle(), 4);
+
+          if (ownType > otherType) {
+            ne->SetHasToRetract(true);
+            ne->SetDiamBeforeRetraction(ne->GetDiameter());
+          }
+
+        } // if ! has to retract
+
+        // if neurite has to retract
+        else {
+          ne->RetractTerminalEnd(40);
         }
 
       } // if is terminal
@@ -725,8 +775,11 @@ inline string swc_neurites(const T ne, int labelParent, array<double, 3> somaPos
             ne->GetDiameter()/2, " ", labelParent,
             swc_neurites(ne->GetDaughterRight(), currentLabel,
                          somaPosition)).c_str();
+    ne->GetNeuronSomaOfNeurite()->IncreaseLabel();
   }
   // if is straigh dendrite
+  // need to update currentLabel
+  currentLabel = ne->GetNeuronSomaOfNeurite()->GetLabel();
   if (ne->GetDaughterLeft() != nullptr) {
     temps = Concat(temps,"\n", currentLabel, " 3 ",
             nePosition[0], " ", nePosition[1], " ", nePosition[2], " ",
@@ -819,8 +872,8 @@ inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
   int maxStep = 3000;
   // Create an artificial bounds for the simulation space
-  int cubeDim = 500;
-  int num_cells = 4400;
+  int cubeDim = 250;
+  int num_cells = 1100;
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
