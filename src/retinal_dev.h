@@ -208,30 +208,30 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
               int ownType = 0;
               int otherType = 0;
               // lambda updating counters for neighbor neurites
-              auto countNeighbours = [&](auto&& neighbor, SoHandle
-              neighbor_handle) {
-                // if neighbor is a NeuriteElement
-                if (neighbor->template IsSoType<MyNeurite>()) {
-                  auto&& neighbor_rc = neighbor->template
-                    ReinterpretCast<MyNeurite>();
-                  auto n_soptr = neighbor_rc->GetSoPtr();
-                  // if not a direct relative but same cell type
-                  if (n_soptr->GetNeuronSomaOfNeurite() !=
-                      ne->GetNeuronSomaOfNeurite() &&
-                      n_soptr->GetSubtype()/100 == ne->GetSubtype()/100) {
-                    ownType++;
-                  }
-                  else if (n_soptr->GetNeuronSomaOfNeurite() !=
-                      ne->GetNeuronSomaOfNeurite() &&
-                      n_soptr->GetSubtype()/100 != ne->GetSubtype()/100) {
-                    otherType++;
-                  }
-                }
-              }; // end lambda
-
-              auto* grid = sim->GetGrid();
-              grid->ForEachNeighborWithinRadius(
-                countNeighbours, *ne, ne->GetSoHandle(), 4);
+              // auto countNeighbours = [&](auto&& neighbor, SoHandle
+              // neighbor_handle) {
+              //   // if neighbor is a NeuriteElement
+              //   if (neighbor->template IsSoType<MyNeurite>()) {
+              //     auto&& neighbor_rc = neighbor->template
+              //       ReinterpretCast<MyNeurite>();
+              //     auto n_soptr = neighbor_rc->GetSoPtr();
+              //     // if not a direct relative but same cell type
+              //     if (n_soptr->GetNeuronSomaOfNeurite() !=
+              //         ne->GetNeuronSomaOfNeurite() &&
+              //         n_soptr->GetSubtype()/100 == ne->GetSubtype()/100) {
+              //       ownType++;
+              //     }
+              //     else if (n_soptr->GetNeuronSomaOfNeurite() !=
+              //         ne->GetNeuronSomaOfNeurite() &&
+              //         n_soptr->GetSubtype()/100 != ne->GetSubtype()/100) {
+              //       otherType++;
+              //     }
+              //   }
+              // }; // end lambda
+              //
+              // auto* grid = sim->GetGrid();
+              // grid->ForEachNeighborWithinRadius(
+              //   countNeighbours, *ne, ne->GetSoHandle(), 4);
 
               if (ownType > otherType) {
                 ne->SetHasToRetract(true);

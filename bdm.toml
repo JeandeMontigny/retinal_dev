@@ -16,7 +16,7 @@ export_interval = 2
 
     [[visualize_sim_object]]
     name = "MyNeurite"
-    additional_data_members = [ "actual_length_" ]
+    additional_data_members = [ "subtype_" ]
 
     # [[visualize_diffusion]]
     # name = "on_diffusion"
