@@ -84,6 +84,9 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
     subtype_[kIdx] = other->subtype_[other->kIdx];
   }
 
+  template <typename TOther>
+  MyNeuriteExt(const experimental::neuroscience::NewNeuriteExtensionEvent& event, TOther* other, uint64_t new_oid = 0) {}
+
   // event handler for SplitNeuriteElementEvent
   template <typename TEvent, typename... TOthers>
   void EventHandler(const TEvent&, TOthers*...) {}
