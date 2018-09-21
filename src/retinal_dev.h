@@ -2,13 +2,8 @@
 #define RETINAL_DEV_
 
 #include "biodynamo.h"
-#include "random.h"
+#include "neuroscience/neuroscience.h"
 #include "substance_initializers.h"
-#include "model_initializer.h"
-
-#include "neuroscience/compile_time_param.h"
-#include "neuroscience/neuron_soma.h"
-#include "neuroscience/neurite_element.h"
 
 namespace bdm {
 // cell type: 0=on; 1=off; -1=not differentiated yet
@@ -40,6 +35,19 @@ BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
 
   MyCellExt(const array<double, 3>& position) : Base(position) {}
 
+  /// Default event constructor
+  template <typename TEvent, typename TOther>
+  MyCellExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
+    // TODO(jean) implement
+  }
+
+  /// Default event handler (exising biology module won't be modified on
+  /// any event)
+  template <typename TEvent, typename... TOthers>
+  void EventHandler(const TEvent&, TOthers*...) {
+    // TODO(jean) implement
+  }
+
   void SetCellType(int t) { cell_type_[kIdx] = t; }
   int GetCellType() const { return cell_type_[kIdx]; }
   // This function is used by ParaView for coloring the cells by their type
@@ -65,6 +73,19 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
 public:
   MyNeuriteExt() {}
   MyNeuriteExt(const array<double, 3>& position) : Base(position) {}
+
+  /// Default event constructor
+  template <typename TEvent, typename TOther>
+  MyNeuriteExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
+    // TODO(jean) implement
+  }
+
+  /// Default event handler (exising biology module won't be modified on
+  /// any event)
+  template <typename TEvent, typename... TOthers>
+  void EventHandler(const TEvent&, TOthers*...) {
+    // TODO(jean) implement
+  }
 
   void SetHasToRetract(int r) { has_to_retract_[kIdx] = r; }
   bool GetHasToRetract() const { return has_to_retract_[kIdx]; }
@@ -92,121 +113,128 @@ public:
 };
 
 
-template <typename TSimulation = Simulation<>>
 struct RGC_dendrite_growth_test : public BaseBiologyModule {
-  RGC_dendrite_growth_test() : BaseBiologyModule(gAllBmEvents) {}
+  RGC_dendrite_growth_test() : BaseBiologyModule(gAllEventIds) {}
 
-  template <typename T>
-  void Run(T* sim_object) {
-    auto* sim = TSimulation::GetActive();
-    auto* random = sim->GetRandom();
-//    auto* param = sim->GetParam();
-    auto* rm = sim->GetResourceManager();
+  /// Default event constructor
+  template <typename TEvent, typename TBm>
+  RGC_dendrite_growth_test(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
+    // TODO(jean) implement
+  }
 
-    if (sim_object->template IsSoType<MyNeurite>()) {
-      auto&& sim_objectNe = sim_object->template ReinterpretCast<MyNeurite>();
-      auto ne = sim_objectNe.GetSoPtr();
+  /// Default event handler (exising biology module won't be modified on
+  /// any event)
+  template <typename TEvent, typename... TBms>
+  void EventHandler(const TEvent&, TBms*...) {
+    // TODO(jean) implement
+  }
 
-      if (ne->IsTerminal() && ne->GetDiameter() >= 0.5
-          && ne->GetNeuronSomaOfNeurite()->GetInternalClock() > 1600) {
-        if (!init_) {
-          dg_on_RGCguide_ = rm->GetDiffusionGrid("on_substance_RGC_guide");
-          dg_off_RGCguide_ = rm->GetDiffusionGrid("off_substance_RGC_guide");
-          init_ = true;
-        }
-        array<double, 3> gradient_RGCguide;
-        double concentration = 0;
-        // initialise the correct substance as guide depending on cell type
-        if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 0) {
-          dg_on_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
-          concentration = dg_on_RGCguide_->GetConcentration(ne->GetPosition());
-        }
-        if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 1) {
-          dg_off_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
-          concentration = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
-        }
-        if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 2) {
-          double conc_on = dg_on_RGCguide_->GetConcentration(ne->GetPosition());
-          double conc_off = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
-          if (conc_on > conc_off) {
-            concentration = conc_on;
-            dg_on_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
-          } else {
-            concentration = conc_off;
-            dg_off_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
-          }
-        }
-
-        // if neurite doesn't have to retract
-        if (!ne->GetHasToRetract()) {
-          double gradientWeight = 0.2;
-          double randomnessWeight = 0.2;
-          double oldDirectionWeight = 1.6;
-          array<double, 3> random_axis = {random->Uniform(-1, 1),
-                                          random->Uniform(-1, 1),
-                                          random->Uniform(-1, 1)};
-          auto oldDirection =
-              Math::ScalarMult(oldDirectionWeight, ne->GetSpringAxis());
-          auto gradDirection = Math::ScalarMult(
-              gradientWeight, Math::Normalize(gradient_RGCguide));
-          auto randomDirection =
-              Math::ScalarMult(randomnessWeight, random_axis);
-          array<double, 3> newStepDirection = Math::Add(
-              Math::Add(oldDirection, randomDirection), gradDirection);
-
-          ne->ElongateTerminalEnd(25, newStepDirection);
-          ne->SetDiameter(ne->GetDiameter()-0.0008);
-
-          if (concentration > 0.04
-            && random->Uniform() < 0.0095*ne->GetDiameter()) {
-            ne->SetDiameter(ne->GetDiameter()-0.005);
-            ne->Bifurcate();
-          }
-
-          // homo-type interaction
-          int ownType = 0;
-          int otherType = 0;
-          // lambda updating counters for neighbor neurites
-          auto countNeighbours = [&](auto&& neighbor, SoHandle neighbor_handle) {
-            // if neighbor is a NeuriteElement
-            if (neighbor->template IsSoType<MyNeurite>()) {
-              auto&& neighbor_rc = neighbor->template
-                ReinterpretCast<MyNeurite>();
-              auto n_soptr = neighbor_rc->GetSoPtr();
-              // if not a direct relative but same cell type
-              if (n_soptr->GetNeuronSomaOfNeurite() !=
-                  ne->GetNeuronSomaOfNeurite() &&
-                  n_soptr->GetNeuronSomaOfNeurite()->GetCellType() ==
-                  ne->GetNeuronSomaOfNeurite()->GetCellType()) {
-                ownType++;
-              }
-              else if (n_soptr->GetNeuronSomaOfNeurite() !=
-                  ne->GetNeuronSomaOfNeurite() &&
-                  n_soptr->GetNeuronSomaOfNeurite()->GetCellType() !=
-                  ne->GetNeuronSomaOfNeurite()->GetCellType()) {
-                otherType++;
-              }
-            }
-          }; // end lambda
-
-          auto* grid = sim->GetGrid();
-          grid->ForEachNeighborWithinRadius(
-            countNeighbours, ne, ne->GetSoHandle(), 4);
-
-          if (ownType > otherType) {
-            ne->SetHasToRetract(true);
-            ne->SetDiamBeforeRetraction(ne->GetDiameter());
-          }
-
-        } // if ! has to retract
-
-        // if neurite has to retract
-        else {
-          ne->RetractTerminalEnd(40);
-        }
-
-      } // if is terminal
-    } // if MyNeurite object
+  template <typename T, typename TSimulation = Simulation<>>
+  void Run(T* ne) {
+//     auto* sim = TSimulation::GetActive();
+//     auto* random = sim->GetRandom();
+// //    auto* param = sim->GetParam();
+//     auto* rm = sim->GetResourceManager();
+//
+//       if (ne->IsTerminal() && ne->GetDiameter() >= 0.5
+//           && ne->GetNeuronSomaOfNeurite()->GetInternalClock() > 1600) {
+//         if (!init_) {
+//           dg_on_RGCguide_ = rm->GetDiffusionGrid("on_substance_RGC_guide");
+//           dg_off_RGCguide_ = rm->GetDiffusionGrid("off_substance_RGC_guide");
+//           init_ = true;
+//         }
+//         array<double, 3> gradient_RGCguide;
+//         double concentration = 0;
+//         // initialise the correct substance as guide depending on cell type
+//         if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 0) {
+//           dg_on_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
+//           concentration = dg_on_RGCguide_->GetConcentration(ne->GetPosition());
+//         }
+//         if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 1) {
+//           dg_off_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
+//           concentration = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
+//         }
+//         if (ne->GetNeuronSomaOfNeurite()->GetCellType() == 2) {
+//           double conc_on = dg_on_RGCguide_->GetConcentration(ne->GetPosition());
+//           double conc_off = dg_off_RGCguide_->GetConcentration(ne->GetPosition());
+//           if (conc_on > conc_off) {
+//             concentration = conc_on;
+//             dg_on_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
+//           } else {
+//             concentration = conc_off;
+//             dg_off_RGCguide_->GetGradient(ne->GetPosition(), &gradient_RGCguide);
+//           }
+//         }
+//
+//         // if neurite doesn't have to retract
+//         if (!ne->GetHasToRetract()) {
+//           double gradientWeight = 0.2;
+//           double randomnessWeight = 0.2;
+//           double oldDirectionWeight = 1.6;
+//           array<double, 3> random_axis = {random->Uniform(-1, 1),
+//                                           random->Uniform(-1, 1),
+//                                           random->Uniform(-1, 1)};
+//           auto oldDirection =
+//               Math::ScalarMult(oldDirectionWeight, ne->GetSpringAxis());
+//           auto gradDirection = Math::ScalarMult(
+//               gradientWeight, Math::Normalize(gradient_RGCguide));
+//           auto randomDirection =
+//               Math::ScalarMult(randomnessWeight, random_axis);
+//           array<double, 3> newStepDirection = Math::Add(
+//               Math::Add(oldDirection, randomDirection), gradDirection);
+//
+//           ne->ElongateTerminalEnd(25, newStepDirection);
+//           ne->SetDiameter(ne->GetDiameter()-0.0008);
+//
+//           if (concentration > 0.04
+//             && random->Uniform() < 0.0095*ne->GetDiameter()) {
+//             ne->SetDiameter(ne->GetDiameter()-0.005);
+//             ne->Bifurcate();
+//           }
+//
+//           // homo-type interaction
+//           int ownType = 0;
+//           int otherType = 0;
+//           // lambda updating counters for neighbor neurites
+//           auto countNeighbours = [&](auto&& neighbor, SoHandle neighbor_handle) {
+//             // if neighbor is a NeuriteElement
+//             if (neighbor->template IsSoType<MyNeurite>()) {
+//               auto&& neighbor_rc = neighbor->template
+//                 ReinterpretCast<MyNeurite>();
+//               auto n_soptr = neighbor_rc->GetSoPtr();
+//               // if not a direct relative but same cell type
+//               if (n_soptr->GetNeuronSomaOfNeurite() !=
+//                   ne->GetNeuronSomaOfNeurite() &&
+//                   n_soptr->GetNeuronSomaOfNeurite()->GetCellType() ==
+//                   ne->GetNeuronSomaOfNeurite()->GetCellType()) {
+//                 ownType++;
+//               }
+//               else if (n_soptr->GetNeuronSomaOfNeurite() !=
+//                   ne->GetNeuronSomaOfNeurite() &&
+//                   n_soptr->GetNeuronSomaOfNeurite()->GetCellType() !=
+//                   ne->GetNeuronSomaOfNeurite()->GetCellType()) {
+//                 otherType++;
+//               }
+//             }
+//           }; // end lambda
+//
+//           auto* grid = sim->GetGrid();
+//           grid->ForEachNeighborWithinRadius(
+//             countNeighbours, *ne, ne->GetSoHandle(), 4);
+//
+//           if (ownType > otherType) {
+//             ne->SetHasToRetract(true);
+//             ne->SetDiamBeforeRetraction(ne->GetDiameter());
+//           }
+//
+//         } // if ! has to retract
+//
+//         // if neurite has to retract
+//         else {
+//           ne->RetractTerminalEnd(40);
+//         }
+//
+//       } // if is terminal
   } // end run
 
   private:
@@ -218,18 +246,28 @@ struct RGC_dendrite_growth_test : public BaseBiologyModule {
 
 
 // Define dendrites behavior for RGC dendritic growth
-template <typename TSimulation = Simulation<>>
 struct RGC_dendrite_growth : public BaseBiologyModule {
-  RGC_dendrite_growth() : BaseBiologyModule(gAllBmEvents) {}
+  RGC_dendrite_growth() : BaseBiologyModule(gAllEventIds) {}
 
-  template <typename T>
-  void Run(T* sim_object) {
+  /// Default event constructor
+  template <typename TEvent, typename TBm>
+  RGC_dendrite_growth(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
+    // TODO(jean) implement
+  }
+
+  /// Default event handler (exising biology module won't be modified on
+  /// any event)
+  template <typename TEvent, typename... TBms>
+  void EventHandler(const TEvent&, TBms*...) {
+    // TODO(jean) implement
+  }
+
+  template <typename T, typename TSimulation = Simulation<>>
+  void Run(T* ne) {
     auto* sim = TSimulation::GetActive();
     auto* random = sim->GetRandom();
     auto* rm = sim->GetResourceManager();
 
-    if (sim_object->template IsSoType<MyNeurite>()) {
-      auto&& sim_objectNe = sim_object->template ReinterpretCast<MyNeurite>();
 
       if (!init_) {
         dg_on_RGCguide_ = rm->GetDiffusionGrid("on_substance_RGC_guide");
@@ -249,7 +287,6 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
       array<double, 3> gradient_RGCguide;
       double concentration = 0;
 
-      auto ne = sim_objectNe.GetSoPtr();
       // if neurite is not in sleep & is terminal & mosaic is over
       if (!ne->GetSleepMode() && ne->IsTerminal() &&
           ne->GetNeuronSomaOfNeurite()->GetCellType() != -1 &&
@@ -279,7 +316,7 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
             ne->SetDiameter(ne->GetDiameter() - 0.0016);
             ne->Bifurcate();
             // auto ne2 = ne->Bifurcate()[1];
-            // ne2->AddBiologyModule(RGC_dendrite_growth<>());
+            // ne2->AddBiologyModule(RGC_dendrite_growth());
           }
 
           array<double, 3> random_axis = {random->Uniform(-1, 1),
@@ -348,7 +385,7 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
             ne->SetHasToRetract(false);
             ne->SetSleepMode(true);
             // TODO: remove biologyModule for this neurite
-            // ne->RemoveLocalBiologyModule(RGC_dendrite_growth<>());
+            // ne->RemoveLocalBiologyModule(RGC_dendrite_growth());
           }
 
           // if retraction due to threshold
@@ -374,9 +411,7 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
             }
           } // end if beyound threshold
         } // end has to retract
-
       } // end if neurite not in sleep & cell is not neutral type
-    } // end if is MyNeurite element
   } // end run
 
  private:
@@ -388,17 +423,26 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
 
 
 // Define cell behavior for mosaic formation
-template <typename TSimulation = Simulation<>>
 struct Chemotaxis : public BaseBiologyModule {
-  Chemotaxis() : BaseBiologyModule(gAllBmEvents) {}
+  Chemotaxis() : BaseBiologyModule(gAllEventIds) {}
 
-  template <typename T>
-  void Run(T* sim_object) {
+  /// Default event constructor
+  template <typename TEvent, typename TBm>
+  Chemotaxis(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
+    // TODO(jean) implement
+  }
+
+  /// Default event handler (exising biology module won't be modified on
+  /// any event)
+  template <typename TEvent, typename... TBms>
+  void EventHandler(const TEvent&, TBms*...) {
+    // TODO(jean) implement
+  }
+
+  template <typename T, typename TSimulation = Simulation<>>
+  void Run(T* cell) {
     auto* sim = TSimulation::GetActive();
     auto* random = sim->GetRandom();
-
-    if (sim_object->template IsSoType<MyCell>()) {
-      auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
       bool withCellDeath = true; // run cell death mechanism
       bool withMovement = true; // run tangential migration
@@ -466,7 +510,7 @@ struct Chemotaxis : public BaseBiologyModule {
         // dendrite per cell: average=4.5; std=1.2
         for (int i=0; i<=(int)random->Uniform(2,7); i++) {
           auto&& ne = cell->ExtendNewNeurite({0, 0, 1});
-          ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test<>());
+          ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_test());
           ne->GetSoPtr()->SetHasToRetract(false);
           ne->GetSoPtr()->SetSleepMode(false);
           ne->GetSoPtr()->SetBeyondThreshold(false);
@@ -508,7 +552,7 @@ struct Chemotaxis : public BaseBiologyModule {
         };
         auto* grid = sim->GetGrid();
         grid->ForEachNeighborWithinRadius(
-          killNeighbor, cell, cell->GetSoHandle(), cell->GetDiameter()*1.5);
+          killNeighbor, *cell, cell->GetSoHandle(), cell->GetDiameter()*1.5);
       } // end cell death
 
       /* -- cell fate -- */
@@ -560,7 +604,6 @@ struct Chemotaxis : public BaseBiologyModule {
         cell->SetInternalClock(cell->GetInternalClock() + 1);
       } // end update cell internal clock
 
-    }  // end of if neuron soma
   }    // end Run()
 
  private:
@@ -573,17 +616,26 @@ struct Chemotaxis : public BaseBiologyModule {
 
 
 // 1b. Define secretion behavior:
-template <typename TSimulation = Simulation<>>
 struct SubstanceSecretion : public BaseBiologyModule {
   // Daughter cells inherit this biology module
-  SubstanceSecretion() : BaseBiologyModule(gAllBmEvents) {}
+  SubstanceSecretion() : BaseBiologyModule(gAllEventIds) {}
 
-  template <typename T>
-  void Run(T* sim_object) {
+  /// Default event constructor
+  template <typename TEvent, typename TBm>
+  SubstanceSecretion(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
+    // TODO(jean) implement
+  }
+
+  /// Default event handler (exising biology module won't be modified on
+  /// any event)
+  template <typename TEvent, typename... TBms>
+  void EventHandler(const TEvent&, TBms*...) {
+    // TODO(jean) implement
+  }
+
+  template <typename T, typename TSimulation = Simulation<>>
+  void Run(T* cell) {
     auto* sim = TSimulation::GetActive();
-
-    if (sim_object->template IsSoType<MyCell>()) {
-      auto&& cell = sim_object->template ReinterpretCast<MyCell>();
 
       if (!init_) {
         auto* rm = sim->GetResourceManager();
@@ -605,7 +657,6 @@ struct SubstanceSecretion : public BaseBiologyModule {
       else if (cell->GetCellType() == 2) {
         dg_2_->IncreaseConcentrationBy(secretion_position, 1);
       }
-    }
   }
 
  private:
@@ -618,13 +669,20 @@ struct SubstanceSecretion : public BaseBiologyModule {
 
 
 // define compile time parameter
-template <typename Backend>
-struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
-  using BiologyModules =
-      Variant<Chemotaxis<>, SubstanceSecretion<>, RGC_dendrite_growth<>, RGC_dendrite_growth_test<>>;
-  using AtomicTypes = VariadicTypedef<MyCell, MyNeurite>;
+BDM_CTPARAM(experimental::neuroscience) {
+  BDM_CTPARAM_HEADER(experimental::neuroscience);
+
+  using SimObjectTypes = CTList<MyCell, MyNeurite>;
   using NeuronSoma = MyCell;
   using NeuriteElement = MyNeurite;
+
+  BDM_CTPARAM_FOR(bdm, MyCell) {
+    using BiologyModules = CTList<Chemotaxis, SubstanceSecretion>;
+  };
+
+  BDM_CTPARAM_FOR(bdm, MyNeurite) {
+    using BiologyModules = CTList<RGC_dendrite_growth, RGC_dendrite_growth_test>;
+  };
 };
 
 // define my cell creator
@@ -647,8 +705,8 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
     cell.SetDiameter(random->Uniform(7, 8)); // random diameter
     cell.SetCellType(cellType);
     cell.SetInternalClock(0);
-    cell.AddBiologyModule(SubstanceSecretion<>());
-    cell.AddBiologyModule(Chemotaxis<>());
+    cell.AddBiologyModule(SubstanceSecretion());
+    cell.AddBiologyModule(Chemotaxis());
   }
 
   container->Commit();
@@ -658,6 +716,7 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
 template <typename TSimulation = Simulation<>>
 inline void position_exporteur(int i) {
   int seed = TSimulation::GetActive()->GetRandom()->GetSeed();
+  auto* param = TSimulation::GetActive()->GetParam();
   ofstream positionFileOn;
   ofstream positionFileOff;
   ofstream positionFileOnOff;
@@ -666,13 +725,13 @@ inline void position_exporteur(int i) {
   stringstream sstmOff;
   stringstream sstmOnOff;
   stringstream sstmAll;
-  sstmOn << Concat(Param::kOutputDir, "/cells_position/on_t") << i
+  sstmOn << Concat(param->output_dir_, "/cells_position/on_t") << i
          << "_seed" << seed << ".txt";
-  sstmOff << Concat(Param::kOutputDir, "/cells_position/off_t") << i
+  sstmOff << Concat(param->output_dir_, "/cells_position/off_t") << i
           << "_seed" << seed << ".txt";
-  sstmOnOff << Concat(Param::kOutputDir, "/cells_position/onOff_t") << i
+  sstmOnOff << Concat(param->output_dir_, "/cells_position/onOff_t") << i
             << "_seed" << seed << ".txt";
-  sstmAll << Concat(Param::kOutputDir, "/cells_position/all_t") << i
+  sstmAll << Concat(param->output_dir_, "/cells_position/all_t") << i
             << "_seed" << seed << ".txt";
 
   string fileNameOn = sstmOn.str();
@@ -726,6 +785,7 @@ template <typename TSimulation = Simulation<>>
 inline void morpho_exporteur() {
   auto* sim = TSimulation::GetActive();
   auto* rm = sim->GetResourceManager();
+  auto* param = sim->GetParam();
   int seed = sim->GetRandom()->GetSeed();
   auto my_cells = rm->template Get<MyCell>();
 
@@ -734,7 +794,7 @@ inline void morpho_exporteur() {
     int thisCellType = cell.GetCellType();
     auto cellPosition = cell.GetPosition();
     ofstream swcFile;
-    string swcFileName = Concat(Param::kOutputDir, "/swc_files/cell",
+    string swcFileName = Concat(param->output_dir_, "/swc_files/cell",
                           cellNum, "_type", thisCellType, "_seed",
                           seed, ".swc").c_str();
     swcFile.open(swcFileName);
@@ -863,12 +923,6 @@ inline double getRI(int desiredCellType) {
 /* -------- simulate -------- */
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
-  Simulation<> simulation(argc, argv);
-  auto* rm = simulation.GetResourceManager();
-  auto* random = simulation.GetRandom();
-  auto* scheduler = simulation.GetScheduler();
-  auto* param = simulation.GetParam();
-
   // number of simulation steps
   int maxStep = 3000;
   // Create an artificial bounds for the simulation space
@@ -877,14 +931,6 @@ inline int Simulate(int argc, const char** argv) {
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
-  // cell are created with +100 to min and -100 to max
-  param->bound_space_ = true;
-  param->min_bound_ = 0;
-  param->max_bound_ = cubeDim + 200;
-  // set min and max length for neurite segments
-  param->neurite_min_length_ = 1.0;
-  param->neurite_max_length_ = 2.0;
-
   // set write output param
   // if you want to write file for RI and cell position
   bool writeRI = false;
@@ -892,6 +938,22 @@ inline int Simulate(int argc, const char** argv) {
   bool writeSWC = true;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
+
+  auto set_param = [&](auto* param){
+    // cell are created with +100 to min and -100 to max
+    param->bound_space_ = true;
+    param->min_bound_ = 0;
+    param->max_bound_ = cubeDim + 200;
+    // set min and max length for neurite segments
+    param->neurite_min_length_ = 1.0;
+    param->neurite_max_length_ = 2.0;
+  };
+
+  Simulation<> simulation(argc, argv, set_param);
+  auto* rm = simulation.GetResourceManager();
+  auto* random = simulation.GetRandom();
+  auto* scheduler = simulation.GetScheduler();
+  auto* param = simulation.GetParam();
 
   int mySeed = rand() % 10000;
   mySeed = 9784;  // 9784
@@ -938,8 +1000,8 @@ inline int Simulate(int argc, const char** argv) {
   ofstream outputFile;
   // delete previous simulation export
   if (writePositionExport && system(Concat("mkdir -p ",
-      Param::kOutputDir, "/cells_position").c_str())) {
-    cout << "error in " << Param::kOutputDir
+      param->output_dir_, "/cells_position").c_str())) {
+    cout << "error in " << param->output_dir_
          << "/cells_position folder creation" << endl;
   }
   // create RI export file
@@ -1011,8 +1073,8 @@ inline int Simulate(int argc, const char** argv) {
 
   // remove previous swc files and export neurons morphology
   if (writeSWC && !system(Concat("mkdir -p ",
-      Param::kOutputDir, "/swc_files").c_str())) {
-    if (system(Concat("rm -r ", Param::kOutputDir, "/swc_files/*").c_str())) {
+      param->output_dir_, "/swc_files").c_str())) {
+    if (system(Concat("rm -r ", param->output_dir_, "/swc_files/*").c_str())) {
       cout << "could not delete previous swc files" << endl;
     };
     morpho_exporteur();
