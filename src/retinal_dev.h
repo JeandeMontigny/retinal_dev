@@ -350,7 +350,7 @@ struct RGC_mosaic : public BaseBiologyModule {
         ne->GetSoPtr()->SetSleepMode(false);
         ne->GetSoPtr()->SetBeyondThreshold(false);
         ne->GetSoPtr()->SetSubtype(thisSubType);
-        ne->GetSoPtr()->GetMySoma(cell);
+        ne->GetSoPtr()->SetMySoma(cell);
       }
     }
 
