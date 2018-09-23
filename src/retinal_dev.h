@@ -108,9 +108,8 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   // ParaView
   int* GetSubtypePtr() { return subtype_.data(); }
 
-  // pointer to MyCell instead of MyCell
-  void SetMySoma(MyCell soma) { its_soma_[kIdx = soma]; }
-  MyCell GetMySoma() { return its_soma_[kIdx]; }
+  void SetMySoma(MyCell soma) { its_soma_[kIdx] = &soma; }
+  MyCell GetMySoma() { return *its_soma_[kIdx]; }
 
  private:
   vec<bool> has_to_retract_;
@@ -118,7 +117,7 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   vec<bool> sleep_mode_;
   vec<int> diam_before_retract_;
   vec<int> subtype_;
-  vec<MyCell> its_soma_;
+  vec<MyCell*> its_soma_;
 };
 
 // Define dendrites behavior for RGC dendritic growth
