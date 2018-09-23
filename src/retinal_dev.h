@@ -108,8 +108,9 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   // ParaView
   int* GetSubtypePtr() { return subtype_.data(); }
 
-  void SetMySoma(MySoma soma) { its_soma_[kIdx = soma]; }
-  MySoma GetMySoma() { return its_soma_[kIdx]; }
+  // pointer to MyCell instead of MyCell
+  void SetMySoma(MyCell soma) { its_soma_[kIdx = soma]; }
+  MyCell GetMySoma() { return its_soma_[kIdx]; }
 
  private:
   vec<bool> has_to_retract_;
@@ -117,7 +118,7 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   vec<bool> sleep_mode_;
   vec<int> diam_before_retract_;
   vec<int> subtype_;
-  vec<MySoma> its_soma_
+  vec<MyCell> its_soma_;
 };
 
 // Define dendrites behavior for RGC dendritic growth
@@ -211,7 +212,7 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
               // homo-type interaction
               int ownType = 0;
               int otherType = 0;
-              lambda updating counters for neighbor neurites
+              // lambda updating counters for neighbor neurites
               auto countNeighbours = [&](auto&& neighbor, SoHandle
               neighbor_handle) {
                 // if neighbor is a NeuriteElement
