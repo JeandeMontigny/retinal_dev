@@ -20,7 +20,6 @@ than movement or cell fate alone.
 */
 
 using namespace std;
-//using experimental::neuroscience::SplitNeuriteElementEvent;
 
 enum Substances {
   on_diffusion,
@@ -72,7 +71,8 @@ BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
 // Define my custom neurite MyNeurite, which extends NeuriteElement
 BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   BDM_SIM_OBJECT_HEADER(MyNeuriteExt, 1, has_to_retract_, beyond_threshold_,
-                        sleep_mode_, diam_before_retract_, subtype_, its_soma_);
+                        sleep_mode_, diam_before_retract_, subtype_);
+// sleep_mode_, diam_before_retract_, subtype_, its_soma_);
 
  public:
   MyNeuriteExt() {}
@@ -93,7 +93,7 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
     its_soma_[kIdx] = other->GetSoPtr();
   }
 
-  // event handler for SplitNeuriteElementEvent
+  /// Default event handler
   template <typename TEvent, typename... TOthers>
   void EventHandler(const TEvent&, TOthers*...) {}
 
@@ -113,8 +113,9 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   int GetSubtype() { return subtype_[kIdx]; }
   // ParaView
   NeuronSomaSoPtr* GetSubtypePtr() { return subtype_.data(); }
-
+  
   NeuronSomaSoPtr GetMySoma() { return its_soma_[kIdx]; }
+
 
  private:
   vec<bool> has_to_retract_;
@@ -122,6 +123,7 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   vec<bool> sleep_mode_;
   vec<int> diam_before_retract_;
   vec<int> subtype_;
+
   vec<NeuronSomaSoPtr> its_soma_;
 };
 
@@ -240,7 +242,6 @@ struct RGC_dendrite_growth_BM : public BaseBiologyModule {
               auto* grid = sim->GetGrid();
               grid->ForEachNeighborWithinRadius(
                 countNeighbours, *ne, ne->GetSoHandle(), 4);
-
               if (ownType > otherType) {
                 ne->SetHasToRetract(true);
                 ne->SetDiamBeforeRetraction(ne->GetDiameter());
