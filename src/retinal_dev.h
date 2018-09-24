@@ -121,12 +121,12 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
 };
 
 // Define dendrites behavior for RGC dendritic growth
-struct RGC_dendrite_growth : public BaseBiologyModule {
-  RGC_dendrite_growth() : BaseBiologyModule(gAllEventIds) {}
+struct RGC_dendrite_growth_BM : public BaseBiologyModule {
+  RGC_dendrite_growth_BM() : BaseBiologyModule(gAllEventIds) {}
 
   /// Default event constructor
   template <typename TEvent, typename TBm>
-  RGC_dendrite_growth(const TEvent& event, TBm* other,
+  RGC_dendrite_growth_BM(const TEvent& event, TBm* other,
                            uint64_t new_oid = 0) {
   }
 
@@ -255,16 +255,16 @@ struct RGC_dendrite_growth : public BaseBiologyModule {
   bool init_ = false;
   DiffusionGrid* dg_on_RGCguide_ = nullptr;
   DiffusionGrid* dg_off_RGCguide_ = nullptr;
-  ClassDefNV(RGC_dendrite_growth, 1);
-}; // end RGC_dendrite_growth
+  ClassDefNV(RGC_dendrite_growth_BM, 1);
+}; // end RGC_dendrite_growth_BM
 
 // Define cell behavior for mosaic formation
-struct RGC_mosaic : public BaseBiologyModule {
-  RGC_mosaic() : BaseBiologyModule(gAllEventIds) {}
+struct RGC_mosaic_BM : public BaseBiologyModule {
+  RGC_mosaic_BM() : BaseBiologyModule(gAllEventIds) {}
 
   /// Default event constructor
   template <typename TEvent, typename TBm>
-  RGC_mosaic(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
+  RGC_mosaic_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
   }
 
   /// Default event handler (exising biology module won't be modified on
@@ -345,7 +345,7 @@ struct RGC_mosaic : public BaseBiologyModule {
       int thisSubType = cell->GetCellType()*100 + (int)random->Uniform(0, 20);
       for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
         auto&& ne = cell->ExtendNewNeurite({0, 0, 1});
-        ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth());
+        ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_BM());
         ne->GetSoPtr()->SetHasToRetract(false);
         ne->GetSoPtr()->SetSleepMode(false);
         ne->GetSoPtr()->SetBeyondThreshold(false);
@@ -447,17 +447,17 @@ struct RGC_mosaic : public BaseBiologyModule {
   DiffusionGrid* dg_0_ = nullptr;
   DiffusionGrid* dg_1_ = nullptr;
   DiffusionGrid* dg_2_ = nullptr;
-  ClassDefNV(RGC_mosaic, 1);
-};  // end biologyModule RGC_mosaic
+  ClassDefNV(RGC_mosaic_BM, 1);
+};  // end biologyModule RGC_mosaic_BM
 
 // Define secretion behavior:
-struct Substance_secretion : public BaseBiologyModule {
+struct Substance_secretion_BM : public BaseBiologyModule {
   // Daughter cells inherit this biology module
-  Substance_secretion() : BaseBiologyModule(gAllEventIds) {}
+  Substance_secretion_BM() : BaseBiologyModule(gAllEventIds) {}
 
   /// Default event constructor
   template <typename TEvent, typename TBm>
-  Substance_secretion(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
+  Substance_secretion_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
   }
 
   /// Default event handler (exising biology module won't be modified on
@@ -497,8 +497,8 @@ struct Substance_secretion : public BaseBiologyModule {
   DiffusionGrid* dg_0_ = nullptr;
   DiffusionGrid* dg_1_ = nullptr;
   DiffusionGrid* dg_2_ = nullptr;
-  ClassDefNV(Substance_secretion, 1);
-};  // end biologyModule Substance_secretion
+  ClassDefNV(Substance_secretion_BM, 1);
+};  // end biologyModule Substance_secretion_BM
 
 // define compile time parameter
 BDM_CTPARAM(experimental::neuroscience) {
@@ -509,12 +509,12 @@ BDM_CTPARAM(experimental::neuroscience) {
   using NeuriteElement = MyNeurite;
 
   BDM_CTPARAM_FOR(bdm, MyCell) {
-    using BiologyModules = CTList<RGC_mosaic, Substance_secretion>;
+    using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM>;
   };
 
   BDM_CTPARAM_FOR(bdm, MyNeurite) {
     using BiologyModules =
-        CTList<RGC_dendrite_growth>;
+        CTList<RGC_dendrite_growth_BM>;
   };
 };
 
@@ -538,8 +538,8 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
     cell.SetDiameter(random->Uniform(7, 8));  // random diameter
     cell.SetCellType(cellType);
     cell.SetInternalClock(0);
-    cell.AddBiologyModule(Substance_secretion());
-    cell.AddBiologyModule(RGC_mosaic());
+    cell.AddBiologyModule(Substance_secretion_BM());
+    cell.AddBiologyModule(RGC_mosaic_BM());
   }
 
   container->Commit();
