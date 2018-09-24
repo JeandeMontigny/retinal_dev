@@ -78,14 +78,19 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   MyNeuriteExt() {}
   MyNeuriteExt(const array<double, 3>& position) : Base(position) {}
 
+  using NeuronSoma = typename TCompileTimeParam::NeuronSoma;
+  using NeuronSomaSoPtr = ToSoPtr<NeuronSoma>;
+
   /// Default event constructor
   template <typename TEvent, typename TOther>
   MyNeuriteExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
     subtype_[kIdx] = other->subtype_[other->kIdx];
+    its_soma_[kIdx] = other->its_soma_[kIdx];
   }
 
   template <typename TOther>
   MyNeuriteExt(const experimental::neuroscience::NewNeuriteExtensionEvent& event, TOther* other, uint64_t new_oid = 0) {
+    its_soma_[kIdx] = other->GetSoPtr();
   }
 
   /// Default event handler
@@ -107,10 +112,10 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   void SetSubtype(int st) { subtype_[kIdx] = st; }
   int GetSubtype() { return subtype_[kIdx]; }
   // ParaView
-  int* GetSubtypePtr() { return subtype_.data(); }
+  NeuronSomaSoPtr* GetSubtypePtr() { return subtype_.data(); }
+  
+  NeuronSomaSoPtr GetMySoma() { return its_soma_[kIdx]; }
 
-  // void SetMySoma(MyCell soma) { its_soma_[kIdx] = &soma; }
-  // MyCell GetMySoma() { return *its_soma_[kIdx]; }
 
  private:
   vec<bool> has_to_retract_;
@@ -118,7 +123,8 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   vec<bool> sleep_mode_;
   vec<int> diam_before_retract_;
   vec<int> subtype_;
-  // vec<MyCell*> its_soma_;
+
+  vec<NeuronSomaSoPtr> its_soma_;
 };
 
 // Define dendrites behavior for RGC dendritic growth
@@ -213,30 +219,29 @@ struct RGC_dendrite_growth_BM : public BaseBiologyModule {
               int ownType = 0;
               int otherType = 0;
               // lambda updating counters for neighbor neurites
-              // auto countNeighbours = [&](auto&& neighbor, SoHandle
-              // neighbor_handle) {
-              //   // if neighbor is a NeuriteElement
-              //   if (neighbor->template IsSoType<MyNeurite>()) {
-              //     auto&& neighbor_rc = neighbor->template
-              //       ReinterpretCast<MyNeurite>();
-              //     auto n_soptr = neighbor_rc->GetSoPtr();
-              //     // if not a direct relative but same cell type
-              //     if (n_soptr->GetNeuronSomaOfNeurite() !=
-              //         ne->GetNeuronSomaOfNeurite() &&
-              //         n_soptr->GetSubtype()/100 == ne->GetSubtype()/100) {
-              //       ownType++;
-              //     }
-              //     else if (n_soptr->GetMySoma() != ne->GetMySoma()
-              //       && n_soptr->GetSubtype()/100 != ne->GetSubtype()/100) {
-              //       otherType++;
-              //     }
-              //   }
-              // }; // end lambda
-              //
-              // auto* grid = sim->GetGrid();
-              // grid->ForEachNeighborWithinRadius(
-              //   countNeighbours, *ne, ne->GetSoHandle(), 4);
+              auto countNeighbours = [&](auto&& neighbor, SoHandle
+              neighbor_handle) {
+                // if neighbor is a NeuriteElement
+                if (neighbor->template IsSoType<MyNeurite>()) {
+                  auto&& neighbor_rc = neighbor->template
+                    ReinterpretCast<MyNeurite>();
+                  auto n_soptr = neighbor_rc->GetSoPtr();
+                  // if not a direct relative but same cell type
+                  // if (n_soptr->GetNeuronSomaOfNeurite() !=
+                  //     ne->GetNeuronSomaOfNeurite() &&
+                  //     n_soptr->GetSubtype()/100 == ne->GetSubtype()/100) {
+                  //   ownType++;
+                  // }
+                  // else if (n_soptr->GetMySoma() != ne->GetMySoma()
+                  //   && n_soptr->GetSubtype()/100 != ne->GetSubtype()/100) {
+                  //   otherType++;
+                  // }
+                }
+              }; // end lambda
 
+              auto* grid = sim->GetGrid();
+              grid->ForEachNeighborWithinRadius(
+                countNeighbours, *ne, ne->GetSoHandle(), 4);
               if (ownType > otherType) {
                 ne->SetHasToRetract(true);
                 ne->SetDiamBeforeRetraction(ne->GetDiameter());
@@ -351,7 +356,6 @@ struct RGC_mosaic_BM : public BaseBiologyModule {
         ne->GetSoPtr()->SetSleepMode(false);
         ne->GetSoPtr()->SetBeyondThreshold(false);
         ne->GetSoPtr()->SetSubtype(thisSubType);
-        // ne->GetSoPtr()->SetMySoma(cell);
       }
     }
 
