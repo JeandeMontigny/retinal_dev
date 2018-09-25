@@ -71,8 +71,7 @@ BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
 // Define my custom neurite MyNeurite, which extends NeuriteElement
 BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   BDM_SIM_OBJECT_HEADER(MyNeuriteExt, 1, has_to_retract_, beyond_threshold_,
-                        sleep_mode_, diam_before_retract_, subtype_);
-// sleep_mode_, diam_before_retract_, subtype_, its_soma_);
+                        sleep_mode_, diam_before_retract_, subtype_, its_soma_);
 
  public:
   MyNeuriteExt() {}
@@ -113,7 +112,8 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   int GetSubtype() { return subtype_[kIdx]; }
   // ParaView
   NeuronSomaSoPtr* GetSubtypePtr() { return subtype_.data(); }
-  
+
+  void SetMySoma(NeuronSomaSoPtr soma) { its_soma_[kIdx] = soma; }
   NeuronSomaSoPtr GetMySoma() { return its_soma_[kIdx]; }
 
 
@@ -219,29 +219,28 @@ struct RGC_dendrite_growth_BM : public BaseBiologyModule {
               int ownType = 0;
               int otherType = 0;
               // lambda updating counters for neighbor neurites
-              auto countNeighbours = [&](auto&& neighbor, SoHandle
-              neighbor_handle) {
-                // if neighbor is a NeuriteElement
-                if (neighbor->template IsSoType<MyNeurite>()) {
-                  auto&& neighbor_rc = neighbor->template
-                    ReinterpretCast<MyNeurite>();
-                  auto n_soptr = neighbor_rc->GetSoPtr();
-                  // if not a direct relative but same cell type
-                  // if (n_soptr->GetNeuronSomaOfNeurite() !=
-                  //     ne->GetNeuronSomaOfNeurite() &&
-                  //     n_soptr->GetSubtype()/100 == ne->GetSubtype()/100) {
-                  //   ownType++;
-                  // }
-                  // else if (n_soptr->GetMySoma() != ne->GetMySoma()
-                  //   && n_soptr->GetSubtype()/100 != ne->GetSubtype()/100) {
-                  //   otherType++;
-                  // }
-                }
-              }; // end lambda
-
-              auto* grid = sim->GetGrid();
-              grid->ForEachNeighborWithinRadius(
-                countNeighbours, *ne, ne->GetSoHandle(), 4);
+              // auto countNeighbours = [&](auto&& neighbor, SoHandle
+              // neighbor_handle) {
+              //   // if neighbor is a NeuriteElement
+              //   if (neighbor->template IsSoType<MyNeurite>()) {
+              //     auto&& neighbor_rc = neighbor->template
+              //       ReinterpretCast<MyNeurite>();
+              //     auto n_soptr = neighbor_rc->GetSoPtr();
+              //     // if not a direct relative but same cell type
+              //     if (!(n_soptr->GetMySoma() == ne->GetMySoma())
+              //       && n_soptr->GetSubtype()/100 == ne->GetSubtype()/100) {
+              //       ownType++;
+              //     }
+              //     else if (!(n_soptr->GetMySoma() == ne->GetMySoma())
+              //       && n_soptr->GetSubtype()/100 != ne->GetSubtype()/100) {
+              //       otherType++;
+              //     }
+              //   }
+              // }; // end lambda
+              //
+              // auto* grid = sim->GetGrid();
+              // grid->ForEachNeighborWithinRadius(
+              //   countNeighbours, *ne, ne->GetSoHandle(), 4);
               if (ownType > otherType) {
                 ne->SetHasToRetract(true);
                 ne->SetDiamBeforeRetraction(ne->GetDiameter());
@@ -263,6 +262,41 @@ struct RGC_dendrite_growth_BM : public BaseBiologyModule {
   DiffusionGrid* dg_off_RGCguide_ = nullptr;
   ClassDefNV(RGC_dendrite_growth_BM, 1);
 }; // end RGC_dendrite_growth_BM
+
+
+struct Neurite_creation_BM: public BaseBiologyModule {
+  Neurite_creation_BM() : BaseBiologyModule(gNullEventId) {}
+
+  /// Default event constructor
+  template <typename TEvent, typename TBm>
+  Neurite_creation_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {}
+
+  template <typename TEvent, typename... TBms>
+  void EventHandler(const TEvent&, TBms*...) {}
+
+  template <typename T, typename TSimulation = Simulation<>>
+  void Run(T* soma) {
+
+    if (soma->GetInternalClock() == 1600 && soma->GetCellType() != -1) {
+      auto* sim = TSimulation::GetActive();
+      auto* random = sim->GetRandom();
+      // dendrite per cell: average=4.5; std=1.2
+      int thisSubType = soma->GetCellType()*100 + (int)random->Uniform(0, 20);
+      for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
+        auto&& ne = soma->ExtendNewNeurite({0, 0, 1});
+        ne->AddBiologyModule(RGC_dendrite_growth_BM());
+        ne->SetHasToRetract(false);
+        ne->SetSleepMode(false);
+        ne->SetBeyondThreshold(false);
+        ne->SetSubtype(thisSubType);
+        // ne->SetMySoma(cell->GetSoPtr());
+      }
+    }
+  } // end run
+
+private:
+  ClassDefNV(Neurite_creation_BM, 1);
+}; // endNeurite_creation_BM
 
 // Define cell behavior for mosaic formation
 struct RGC_mosaic_BM : public BaseBiologyModule {
@@ -346,18 +380,19 @@ struct RGC_mosaic_BM : public BaseBiologyModule {
       }
     }
 
-    if (cellClock == 1600 && cell->GetCellType() != -1) {
-      // dendrite per cell: average=4.5; std=1.2
-      int thisSubType = cell->GetCellType()*100 + (int)random->Uniform(0, 20);
-      for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
-        auto&& ne = cell->ExtendNewNeurite({0, 0, 1});
-        ne->GetSoPtr()->AddBiologyModule(RGC_dendrite_growth_BM());
-        ne->GetSoPtr()->SetHasToRetract(false);
-        ne->GetSoPtr()->SetSleepMode(false);
-        ne->GetSoPtr()->SetBeyondThreshold(false);
-        ne->GetSoPtr()->SetSubtype(thisSubType);
-      }
-    }
+    // if (cellClock == 1600 && cell->GetCellType() != -1) {
+    //   // dendrite per cell: average=4.5; std=1.2
+    //   int thisSubType = cell->GetCellType()*100 + (int)random->Uniform(0, 20);
+    //   for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
+    //     auto&& ne = cell->ExtendNewNeurite({0, 0, 1});
+    //     ne->AddBiologyModule(RGC_dendrite_growth_BM());
+    //     ne->SetHasToRetract(false);
+    //     ne->SetSleepMode(false);
+    //     ne->SetBeyondThreshold(false);
+    //     ne->SetSubtype(thisSubType);
+    //     // ne->SetMySoma(cell->GetSoPtr());
+    //   }
+    // }
 
     /* -- cell movement -- */
     if (withMovement && cellClock >= 200 && cellClock < 1600) {
@@ -514,7 +549,7 @@ BDM_CTPARAM(experimental::neuroscience) {
   using NeuriteElement = MyNeurite;
 
   BDM_CTPARAM_FOR(bdm, MyCell) {
-    using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM>;
+    using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM, Neurite_creation_BM>;
   };
 
   BDM_CTPARAM_FOR(bdm, MyNeurite) {
@@ -545,6 +580,7 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
     cell.SetInternalClock(0);
     cell.AddBiologyModule(Substance_secretion_BM());
     cell.AddBiologyModule(RGC_mosaic_BM());
+    cell.AddBiologyModule(Neurite_creation_BM());
   }
 
   container->Commit();
