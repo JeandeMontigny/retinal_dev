@@ -116,14 +116,12 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
   void SetMySoma(NeuronSomaSoPtr soma) { its_soma_[kIdx] = soma; }
   NeuronSomaSoPtr GetMySoma() { return its_soma_[kIdx]; }
 
-
  private:
   vec<bool> has_to_retract_;
   vec<bool> beyond_threshold_;
   vec<bool> sleep_mode_;
   vec<int> diam_before_retract_;
   vec<int> subtype_;
-
   vec<NeuronSomaSoPtr> its_soma_;
 };
 
@@ -289,7 +287,7 @@ struct Neurite_creation_BM: public BaseBiologyModule {
         ne->SetSleepMode(false);
         ne->SetBeyondThreshold(false);
         ne->SetSubtype(thisSubType);
-        // ne->SetMySoma(cell->GetSoPtr());
+        ne->SetMySoma(soma->GetSoPtr());
       }
     }
   } // end run
@@ -809,7 +807,7 @@ inline int Simulate(int argc, const char** argv) {
   // if you want to write file for RI and cell position
   bool writeRI = false;
   bool writePositionExport = false;
-  bool writeSWC = true;
+  bool writeSWC = false;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
 
@@ -873,15 +871,19 @@ inline int Simulate(int argc, const char** argv) {
   // prepare export
   ofstream outputFile;
   // delete previous simulation export
-  if (writePositionExport &&
-      system(
-          Concat("mkdir -p ", param->output_dir_, "/cells_position").c_str())) {
+  if (writePositionExport && system(
+    Concat("mkdir -p ", param->output_dir_, "/cells_position").c_str())) {
     cout << "error in " << param->output_dir_
          << "/cells_position folder creation" << endl;
   }
   // create RI export file
-  if (writeRI) {
-    outputFile.open("output/cells_position/RI_" + to_string(mySeed) + ".txt");
+  if (writeRI && !writePositionExport &&
+    system(Concat("mkdir -p ", param->output_dir_, "/cells_position").c_str())){
+    cout << "error in " << param->output_dir_
+         << "/cells_position folder creation" << endl;
+  } else {
+    outputFile.open(Concat(param->output_dir_, "/cells_position/RI_" +
+                    to_string(mySeed) + ".txt"));
   }
 
   // 4. Run simulation for maxStep timesteps
