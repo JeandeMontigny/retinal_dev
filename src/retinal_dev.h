@@ -577,8 +577,8 @@ static void CellCreator(double min, double max, int num_cells, int cellType) {
     cell.SetCellType(cellType);
     cell.SetInternalClock(0);
     cell.AddBiologyModule(Substance_secretion_BM());
-    cell.AddBiologyModule(RGC_mosaic_BM());
-    cell.AddBiologyModule(Neurite_creation_BM());
+    // cell.AddBiologyModule(RGC_mosaic_BM());
+    // cell.AddBiologyModule(Neurite_creation_BM());
   }
 
   container->Commit();
@@ -796,7 +796,7 @@ inline double getRI(int desiredCellType) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 3000;
+  int maxStep = 101;
   // Create an artificial bounds for the simulation space
   int cubeDim = 250;
   int num_cells = 1100;
@@ -839,8 +839,26 @@ inline int Simulate(int argc, const char** argv) {
   cout << "off cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, 0, 2);
   cout << "on-off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, num_cells, -1);
+  CellCreator(param->min_bound_, param->max_bound_, 0, -1);
   cout << "undifferentiated cells created" << endl;
+
+  std::array<double, 3> pos = {120,100,100};
+  // auto&& soma = rm->New<MyCell>(pos);
+  // soma.SetDiameter(12);
+  // soma.SetCellType(0);
+  // soma.AddBiologyModule(Substance_secretion_BM());
+
+  pos = {135,100,100};
+  auto&& soma2 = rm->New<MyCell>(pos);
+  soma2.SetDiameter(12);
+  soma2.SetCellType(0);
+  soma2.AddBiologyModule(Substance_secretion_BM());
+
+  // pos = {150,100,100};
+  // auto&& soma3 = rm->New<MyCell>(pos);
+  // soma3.SetDiameter(12);
+  // soma3.SetCellType(0);
+  // soma3.AddBiologyModule(Substance_secretion_BM());
 
   // 3. Define substances
   // Order: substance_name, diffusion_coefficient, decay_constant, resolution
@@ -848,11 +866,11 @@ inline int Simulate(int argc, const char** argv) {
   // if decay_constant is high, diffusion distance is short
   // resolution is number of point in one domaine dimension
   ModelInitializer::DefineSubstance(0, "on_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
+                                    param->max_bound_ / 4);
   ModelInitializer::DefineSubstance(1, "off_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
+                                    2);
   ModelInitializer::DefineSubstance(2, "on_off_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
+                                    2);
 
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide", 0, 0,
@@ -900,43 +918,56 @@ inline int Simulate(int argc, const char** argv) {
 
       // print
       if (i % 100 == 0) {
-        // get cell list size
-        rm = simulation.GetResourceManager();
-        auto my_cells = rm->template Get<MyCell>();
-        int numberOfCells = my_cells->size();
-        // TODO: vector for unknow number of cell type
-        int numberOfCells0 = 0;
-        int numberOfCells1 = 0;
-        int numberOfCells2 = 0;
-        int numberOfDendrites = 0;
+        DiffusionGrid* dg_0_ = rm->GetDiffusionGrid("on_diffusion");
 
-        for (int cellNum = 0; cellNum < numberOfCells;
-             cellNum++) {  // for each cell in simulation
-          numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
-          auto thisCellType = (*my_cells)[cellNum].GetCellType();
-          if (thisCellType == 0) {
-            numberOfCells0++;
-          } else if (thisCellType == 1) {
-            numberOfCells1++;
-          } else if (thisCellType == 2) {
-            numberOfCells2++;
-          }
+        ofstream diffu_outputFile;
+        diffu_outputFile.open("diffusion_study.txt");
+
+        for (double dist=0; dist < 70; dist=dist+0.1) {
+          double concentration = dg_0_->GetConcentration({100.0+dist, 100, 100});
+          if (concentration > 0.1) { concentration=0.1; }
+          diffu_outputFile << dist << " " << concentration << "\n";
         }
-        cout << "-- step " << i << " out of " << maxStep << " --\n"
-             << numberOfCells << " cells in simulation: "
-             << (1 - ((double)numberOfCells / num_cells)) * 100
-             << "% of cell death\n"
-             << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
-             << " cells are type 1 (off) ; " << numberOfCells2
-             << " cells are type 2 (on-off) ; "
-             << (double)(numberOfCells0 + numberOfCells1 + numberOfCells2) /
-                    numberOfCells * 100
-             << "% got type\n"
-             << numberOfDendrites << " apical dendrites in simulation: "
-             << numberOfDendrites / numberOfCells << " dendrites per cell\n"
-             << "RI on: " << RIon << " ; RI off: " << RIoff
-             << " ; RI on-off: " << RIonOff
-             << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;
+        outputFile.close();
+
+        //
+        // // get cell list size
+        // rm = simulation.GetResourceManager();
+        // auto my_cells = rm->template Get<MyCell>();
+        // int numberOfCells = my_cells->size();
+        // // TODO: vector for unknow number of cell type
+        // int numberOfCells0 = 0;
+        // int numberOfCells1 = 0;
+        // int numberOfCells2 = 0;
+        // int numberOfDendrites = 0;
+        //
+        // for (int cellNum = 0; cellNum < numberOfCells;
+        //      cellNum++) {  // for each cell in simulation
+        //   numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
+        //   auto thisCellType = (*my_cells)[cellNum].GetCellType();
+        //   if (thisCellType == 0) {
+        //     numberOfCells0++;
+        //   } else if (thisCellType == 1) {
+        //     numberOfCells1++;
+        //   } else if (thisCellType == 2) {
+        //     numberOfCells2++;
+        //   }
+        // }
+        // cout << "-- step " << i << " out of " << maxStep << " --\n"
+        //      << numberOfCells << " cells in simulation: "
+        //      << (1 - ((double)numberOfCells / num_cells)) * 100
+        //      << "% of cell death\n"
+        //      << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
+        //      << " cells are type 1 (off) ; " << numberOfCells2
+        //      << " cells are type 2 (on-off) ; "
+        //      << (double)(numberOfCells0 + numberOfCells1 + numberOfCells2) /
+        //             numberOfCells * 100
+        //      << "% got type\n"
+        //      << numberOfDendrites << " apical dendrites in simulation: "
+        //      << numberOfDendrites / numberOfCells << " dendrites per cell\n"
+        //      << "RI on: " << RIon << " ; RI off: " << RIoff
+        //      << " ; RI on-off: " << RIonOff
+        //      << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;
       }  // end every 100 simu steps
     }    // end every 10 simu steps
 
