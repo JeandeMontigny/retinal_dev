@@ -40,14 +40,13 @@ BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
   /// Default event constructor
   template <typename TEvent, typename TOther>
   MyCellExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
-    // TODO(jean) implement
   }
 
   /// Default event handler (exising biology module won't be modified on
   /// any event)
   template <typename TEvent, typename... TOthers>
-  void EventHandler(const TEvent&, TOthers*...) {
-    // TODO(jean) implement
+  void EventHandler(const TEvent& event, TOthers*... others) {
+    Base::EventHandler(event, others...);
   }
 
   void SetCellType(int t) { cell_type_[kIdx] = t; }
@@ -82,19 +81,22 @@ BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
 
   /// Default event constructor
   template <typename TEvent, typename TOther>
-  MyNeuriteExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
+  MyNeuriteExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
     subtype_[kIdx] = other->subtype_[other->kIdx];
     its_soma_[kIdx] = other->its_soma_[kIdx];
   }
 
   template <typename TOther>
-  MyNeuriteExt(const experimental::neuroscience::NewNeuriteExtensionEvent& event, TOther* other, uint64_t new_oid = 0) {
+  MyNeuriteExt(const experimental::neuroscience::NewNeuriteExtensionEvent& event,
+    TOther* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
     its_soma_[kIdx] = other->GetSoPtr();
   }
 
   /// Default event handler
   template <typename TEvent, typename... TOthers>
-  void EventHandler(const TEvent&, TOthers*...) {}
+  void EventHandler(const TEvent& event, TOthers*... others) {
+    Base::EventHandler(event, others...);
+  }
 
   void SetHasToRetract(int r) { has_to_retract_[kIdx] = r; }
   bool GetHasToRetract() const { return has_to_retract_[kIdx]; }
@@ -298,7 +300,7 @@ private:
 
 // Define cell behavior for mosaic formation
 struct RGC_mosaic_BM : public BaseBiologyModule {
-  RGC_mosaic_BM() : BaseBiologyModule(gAllEventIds) {}
+  RGC_mosaic_BM() : BaseBiologyModule(gNullEventId) {}
 
   /// Default event constructor
   template <typename TEvent, typename TBm>
@@ -491,7 +493,7 @@ struct RGC_mosaic_BM : public BaseBiologyModule {
 // Define secretion behavior:
 struct Substance_secretion_BM : public BaseBiologyModule {
   // Daughter cells inherit this biology module
-  Substance_secretion_BM() : BaseBiologyModule(gAllEventIds) {}
+  Substance_secretion_BM() : BaseBiologyModule(gNullEventId) {}
 
   /// Default event constructor
   template <typename TEvent, typename TBm>
