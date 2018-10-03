@@ -117,9 +117,7 @@ using namespace std;
                                   "_type", thisCellType, "_seed", seed, ".swc")
                                .c_str();
       swcFile.open(swcFileName);
-
       cell->SetLabel(1);
-
       // swcFile << labelSWC_ << " 1 " << cellPosition[0] << " "
       //         << cellPosition[1]  << " " << cellPosition[2] << " "
       //         << cell->GetDiameter()/2 << " -1";
@@ -131,6 +129,7 @@ using namespace std;
       }  // end for neurite in cell
       swcFile.close();
     }  // end for cell in simulation
+    std::cout << "swc export done" << std::endl;
   }  // end morpho_exporteur
 
 
@@ -246,6 +245,7 @@ using namespace std;
     return computeRI(coordList);  // return RI for desired cell type
   }  // end getRI
 
+
   // write file with migration distance of every cells
   template <typename TSimulation = Simulation<>>
   inline void exportMigrationDist() {
@@ -270,7 +270,6 @@ using namespace std;
     migrationDist_outputFile.close();
     std::cout << "migration distance export done" << std::endl;
   } // end exportMigrationDist
-
 
 } // end namespace bdm
 

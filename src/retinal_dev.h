@@ -44,7 +44,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 1800;
+  int maxStep = 3000;
   // Create an artificial bounds for the simulation space
   int cubeDim = 250;
   int num_cells = 1100;
@@ -56,7 +56,7 @@ inline int Simulate(int argc, const char** argv) {
   bool writeRI = false;
   bool writePositionExport = false;
   bool writeSWC = false;
-  bool writeMigrationDistance = true;
+  bool writeMigrationDistance = false;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
 
@@ -205,7 +205,6 @@ inline int Simulate(int argc, const char** argv) {
       cout << "could not delete previous swc files" << endl;
     };
     morpho_exporteur();
-    std::cout << "swc export done" << std::endl;
   }
 
   if (writeMigrationDistance) {

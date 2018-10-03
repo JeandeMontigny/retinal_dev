@@ -20,7 +20,6 @@ using namespace std;
     void Run(T* ne) {
           auto* sim = TSimulation::GetActive();
           auto* random = sim->GetRandom();
-      //    auto* param = sim->GetParam();
           auto* rm = sim->GetResourceManager();
 
             if (ne->IsTerminal() && ne->GetDiameter() >= 0.5) {

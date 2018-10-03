@@ -21,7 +21,7 @@ using namespace std;
     template <typename T, typename TSimulation = Simulation<>>
     void Run(T* soma) {
 
-      bool createDendrites = false;
+      bool createDendrites = true;
 
       if (createDendrites && soma->GetInternalClock() == 1600 && soma->GetCellType() != -1) {
         auto* sim = TSimulation::GetActive();
@@ -126,20 +126,6 @@ using namespace std;
           cell->ChangeVolume(5500);
         }
       }
-
-      // if (cellClock == 1600 && cell->GetCellType() != -1) {
-      //   // dendrite per cell: average=4.5; std=1.2
-      //   int thisSubType = cell->GetCellType()*100 + (int)random->Uniform(0, 20);
-      //   for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
-      //     auto&& ne = cell->ExtendNewNeurite({0, 0, 1});
-      //     ne->AddBiologyModule(RGC_dendrite_growth_BM());
-      //     ne->SetHasToRetract(false);
-      //     ne->SetSleepMode(false);
-      //     ne->SetBeyondThreshold(false);
-      //     ne->SetSubtype(thisSubType);
-      //     // ne->SetMySoma(cell->GetSoPtr());
-      //   }
-      // }
 
       /* -- cell movement -- */
       if (withMovement && cellClock >= 200 && cellClock < 1600) {
