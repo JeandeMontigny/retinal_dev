@@ -1,6 +1,9 @@
 #ifndef EXTENDED_OBJECTS_
 #define EXTENDED_OBJECTS_
 
+#include "biodynamo.h"
+#include "neuroscience/neuroscience.h"
+
 namespace bdm {
 using namespace std;
 

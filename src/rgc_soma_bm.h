@@ -2,6 +2,7 @@
 #define RGC_SOMA_BM_
 
 #include "rgc_dendrite_bm.h"
+#include "extended_objects.h"
 
 namespace bdm {
 using namespace std;

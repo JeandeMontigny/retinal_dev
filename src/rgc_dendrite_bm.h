@@ -1,6 +1,8 @@
 #ifndef RGC_DENDRITE_BM_
 #define RGC_DENDRITE_BM_
 
+#include "biodynamo.h"
+
 namespace bdm {
 using namespace std;
 
