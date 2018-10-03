@@ -6,7 +6,8 @@ using namespace std;
 
   // Define my custom cell MyCell extending NeuronSoma
   BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
-    BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_, labelSWC_, creation_position_);
+    BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_,
+      labelSWC_, previous_position_, distance_travelled_);
 
    public:
     MyCellExt() {}
@@ -37,14 +38,18 @@ using namespace std;
     inline int GetLabel() { return labelSWC_[kIdx]; }
     inline void IncreaseLabel() { labelSWC_[kIdx] = labelSWC_[kIdx] + 1; }
 
-    void SetCreationPosition(array<double, 3> position) { creation_position_[kIdx] = position; }
-    array<double, 3> GetCreationPosition() { return creation_position_[kIdx]; }
+    void SetPreviousPosition(array<double, 3> position) { previous_position_[kIdx] = position; }
+    array<double, 3> GetPreviousPosition() { return previous_position_[kIdx]; }
+
+    void SetDistanceTravelled(double distance) { distance_travelled_[kIdx] = distance; }
+    double GetDistanceTravelled() {return distance_travelled_[kIdx]; }
 
    private:
     vec<int> cell_type_;
     vec<int> internal_clock_;
     vec<int> labelSWC_;
-    vec<array<double, 3>> creation_position_;
+    vec<array<double, 3>> previous_position_;
+    vec<double> distance_travelled_;
   };
 
 

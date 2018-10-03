@@ -146,6 +146,12 @@ using namespace std;
         // 0. with cell death - 0. without
         if (concentration >= 1.28427) {  // 1.28428 - no artifact - ~4.5
           cell->UpdatePosition(diff_gradient);
+          array<double, 3> previousPosition = cell->GetPreviousPosition();
+          array<double, 3> currentPosition = cell->GetPosition();
+          cell->SetDistanceTravelled(cell->GetDistanceTravelled() +
+            (sqrt(pow(currentPosition[0] - previousPosition[0], 2) +
+                 pow(currentPosition[1] - previousPosition[1], 2))));
+          cell->SetPreviousPosition(cell->GetPosition());
         }
       }  // end tangential migration
 
