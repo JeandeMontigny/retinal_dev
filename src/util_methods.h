@@ -24,6 +24,7 @@ using namespace std;
       cell.SetDiameter(random->Uniform(7, 8));  // random diameter
       cell.SetCellType(cellType);
       cell.SetInternalClock(0);
+      cell.SetCreationPosition(position);
       cell.AddBiologyModule(Substance_secretion_BM());
       cell.AddBiologyModule(RGC_mosaic_BM());
       cell.AddBiologyModule(Neurite_creation_BM());
@@ -244,6 +245,31 @@ using namespace std;
     }
     return computeRI(coordList);  // return RI for desired cell type
   }  // end getRI
+
+  // write file with migration distance of every cells
+  template <typename TSimulation = Simulation<>>
+  inline void exportMigrationDist() {
+    auto* sim = TSimulation::GetActive();
+    auto* rm = sim->GetResourceManager();
+    auto* param = sim->GetParam();
+    auto my_cells = rm->template Get<MyCell>();  // get cell list
+    vector<array<double, 3>> coordList;          // list of coordinate
+    int numberOfCells = my_cells->size();
+
+    ofstream migrationDist_outputFile;
+    migrationDist_outputFile.open(Concat(param->output_dir_, "/migration_distance.txt"));
+    // for each cell in simulation
+    for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
+      array<double, 3> positionAtCreation = (*my_cells)[cellNum].GetCreationPosition();
+      array<double, 3> currentPosition = (*my_cells)[cellNum].GetPosition();
+      double distance = sqrt(pow(currentPosition[0] - positionAtCreation[0], 2) +
+                             pow(currentPosition[1] - positionAtCreation[1], 2));
+      migrationDist_outputFile << distance << "\n";
+    }
+    migrationDist_outputFile.close();
+    std::cout << "migration distance export done" << std::endl;
+  } // end exportMigrationDist
+
 
 } // end namespace bdm
 

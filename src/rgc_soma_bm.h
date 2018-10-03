@@ -20,7 +20,7 @@ using namespace std;
     template <typename T, typename TSimulation = Simulation<>>
     void Run(T* soma) {
 
-      bool createDendrites = true;
+      bool createDendrites = false;
 
       if (createDendrites && soma->GetInternalClock() == 1600 && soma->GetCellType() != -1) {
         auto* sim = TSimulation::GetActive();
