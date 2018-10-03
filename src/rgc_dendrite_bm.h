@@ -78,10 +78,10 @@ using namespace std;
                     Math::Add(oldDirection, randomDirection), gradDirection);
 
                 ne->ElongateTerminalEnd(25, newStepDirection);
-                ne->SetDiameter(ne->GetDiameter()-0.0008);
+                ne->SetDiameter(ne->GetDiameter()-0.00075);
 
                 if (concentration > 0.04
-                  && random->Uniform() < 0.0095*ne->GetDiameter()) {
+                  && random->Uniform() < 0.0072*ne->GetDiameter()) {
                   ne->SetDiameter(ne->GetDiameter()-0.005);
                   ne->Bifurcate();
                 }

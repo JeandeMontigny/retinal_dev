@@ -55,7 +55,7 @@ inline int Simulate(int argc, const char** argv) {
   // if you want to write file for RI and cell position
   bool writeRI = false;
   bool writePositionExport = false;
-  bool writeSWC = false;
+  bool writeSWC = true;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
 
