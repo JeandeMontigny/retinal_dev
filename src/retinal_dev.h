@@ -43,175 +43,181 @@ BDM_CTPARAM(experimental::neuroscience) {
 /* -------- simulate -------- */
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
-  // number of simulation steps
-  int maxStep = 3000;
-  // Create an artificial bounds for the simulation space
-  int cubeDim = 250;
-  int num_cells = 1100;
-  double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
-  cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
-  // set write output param
-  // if you want to write file for RI and cell position
-  bool writeRI = false;
-  bool writePositionExport = false;
-  bool writeSWC = false;
-  bool writeMigrationDistance = false;
-  // create cell position files every outputFrequence steps
-  int outputFrequence = 100;
+  ofstream param_outputFile;
+  param_outputFile.open("param_RI_study.txt");
 
-  auto set_param = [&](auto* param) {
-    // cell are created with +100 to min and -100 to max
-    param->bound_space_ = true;
-    param->min_bound_ = 0;
-    param->max_bound_ = cubeDim + 200;
-    // set min and max length for neurite segments
-    param->neurite_min_length_ = 1.0;
-    param->neurite_max_length_ = 2.0;
-  };
+  for (int param = 0; param < 1; param = param + 0.1) {
 
-  Simulation<> simulation(argc, argv, set_param);
-  auto* rm = simulation.GetResourceManager();
-  auto* random = simulation.GetRandom();
-  auto* scheduler = simulation.GetScheduler();
-  auto* param = simulation.GetParam();
+    auto simulation = new Simulation<>(argc, argv);
+    simulation->Activate();
 
-  int mySeed = rand() % 10000;
-  mySeed = 9784;  // 9784
-  random->SetSeed(mySeed);
-  cout << "modelling with seed " << mySeed << endl;
+    // number of simulation steps
+    int maxStep = 1800;
+    // Create an artificial bounds for the simulation space
+    int cubeDim = 250;
+    int num_cells = 1100;
+    double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
+    cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
-  // min position, max position, number of cells , cell type
-  CellCreator(param->min_bound_, param->max_bound_, 0, 0);
-  cout << "on cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 0, 1);
-  cout << "off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 0, 2);
-  cout << "on-off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, num_cells, -1);
-  cout << "undifferentiated cells created" << endl;
+    // set write output param
+    // if you want to write file for RI and cell position
+    bool writeRI = true;
+    bool writePositionExport = false;
+    bool writeSWC = false;
+    bool writeMigrationDistance = true;
+    // create cell position files every outputFrequence steps
+    int outputFrequence = 100;
 
-  // 3. Define substances
-  // Order: substance_name, diffusion_coefficient, decay_constant, resolution
-  // if diffusion_coefficient is low, diffusion distance is short
-  // if decay_constant is high, diffusion distance is short
-  // resolution is number of point in one domaine dimension
-  ModelInitializer::DefineSubstance(0, "on_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
-  ModelInitializer::DefineSubstance(1, "off_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
-  ModelInitializer::DefineSubstance(2, "on_off_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
+    auto set_param = [&](auto* param) {
+      // cell are created with +100 to min and -100 to max
+      param->bound_space_ = true;
+      param->min_bound_ = 0;
+      param->max_bound_ = cubeDim + 200;
+      // set min and max length for neurite segments
+      param->neurite_min_length_ = 1.0;
+      param->neurite_max_length_ = 2.0;
+    };
 
-  // define substances for RGC dendrite attraction
-  ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide", 0, 0,
-                                    param->max_bound_ / 2);
-  ModelInitializer::DefineSubstance(4, "off_substance_RGC_guide", 0, 0,
-                                    param->max_bound_ / 2);
-  // create substance gaussian distribution for RGC dendrite attraction
-  // average peak distance for ON cells: 15.959 with std of 5.297;
-  ModelInitializer::InitializeSubstance(3, "on_substance_RGC_guide",
-                                        GaussianBand(45, 6, Axis::kZAxis));
-  // average peak distance for OFF cells: 40.405 with std of 8.39;
-  ModelInitializer::InitializeSubstance(4, "off_substance_RGC_guide",
-                                        GaussianBand(69, 8, Axis::kZAxis));
-  cout << "substances initialised" << endl;
+    Simulation<> simulation(argc, argv, set_param);
+    auto* rm = simulation.GetResourceManager();
+    auto* random = simulation.GetRandom();
+    auto* scheduler = simulation.GetScheduler();
+    auto* param = simulation.GetParam();
 
-  // prepare export
-  ofstream outputFile;
-  // delete previous simulation export
-  if (writePositionExport && system(
-    Concat("mkdir -p ", param->output_dir_, "/cells_position").c_str())) {
-    cout << "error in " << param->output_dir_
-         << "/cells_position folder creation" << endl;
-  }
-  // create RI export file
-  if (writeRI && !writePositionExport &&
-    system(Concat("mkdir -p ", param->output_dir_, "/cells_position").c_str())){
-    cout << "error in " << param->output_dir_
-         << "/cells_position folder creation" << endl;
-  } else {
-    outputFile.open(Concat(param->output_dir_, "/cells_position/RI_" +
-                    to_string(mySeed) + ".txt"));
-  }
+    int mySeed = rand() % 10000;
+  //  mySeed = 9784;  // 9784
+    random->SetSeed(mySeed);
+    cout << "modelling with seed " << mySeed << endl;
 
-  // 4. Run simulation for maxStep timesteps
-  for (int i = 0; i <= maxStep; i++) {
-    scheduler->Simulate(1);
+    // min position, max position, number of cells , cell type
+    CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 0);
+    cout << "on cells created" << endl;
+    CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 1);
+    cout << "off cells created" << endl;
+    CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 2);
+    cout << "on-off cells created" << endl;
+    CellCreator(param->min_bound_, param->max_bound_, 0, -1);
+    cout << "undifferentiated cells created" << endl;
 
-    if (i % 10 == 0) {  // write RI in file
-      double RIon = getRI(0);
-      double RIoff = getRI(1);
-      double RIonOff = getRI(2);
-      if (writeRI) {
-        outputFile << RIon << " " << RIoff << " " << RIonOff << "\n";
-      }
+    // 3. Define substances
+    // Order: substance_name, diffusion_coefficient, decay_constant, resolution
+    // if diffusion_coefficient is low, diffusion distance is short
+    // if decay_constant is high, diffusion distance is short
+    // resolution is number of point in one domaine dimension
+    ModelInitializer::DefineSubstance(0, "on_diffusion", 1, 0.5,
+                                      param->max_bound_ / 10);
+    ModelInitializer::DefineSubstance(1, "off_diffusion", 1, 0.5,
+                                      param->max_bound_ / 10);
+    ModelInitializer::DefineSubstance(2, "on_off_diffusion", 1, 0.5,
+                                      param->max_bound_ / 10);
 
-      // print
-      if (i % 100 == 0) {
-        // get cell list size
-        rm = simulation.GetResourceManager();
-        auto my_cells = rm->template Get<MyCell>();
-        int numberOfCells = my_cells->size();
-        // TODO: vector for unknow number of cell type
-        int numberOfCells0 = 0;
-        int numberOfCells1 = 0;
-        int numberOfCells2 = 0;
-        int numberOfDendrites = 0;
+    cout << "substances initialised" << endl;
 
-        for (int cellNum = 0; cellNum < numberOfCells;
-             cellNum++) {  // for each cell in simulation
-          numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
-          auto thisCellType = (*my_cells)[cellNum].GetCellType();
-          if (thisCellType == 0) {
-            numberOfCells0++;
-          } else if (thisCellType == 1) {
-            numberOfCells1++;
-          } else if (thisCellType == 2) {
-            numberOfCells2++;
-          }
-        }
-        cout << "-- step " << i << " out of " << maxStep << " --\n"
-             << numberOfCells << " cells in simulation: "
-             << (1 - ((double)numberOfCells / num_cells)) * 100
-             << "% of cell death\n"
-             << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
-             << " cells are type 1 (off) ; " << numberOfCells2
-             << " cells are type 2 (on-off) ; "
-             << (double)(numberOfCells0 + numberOfCells1 + numberOfCells2) /
-                    numberOfCells * 100
-             << "% got type\n"
-             << numberOfDendrites << " apical dendrites in simulation: "
-             << (double)numberOfDendrites / numberOfCells << " dendrites per cell\n"
-             << "RI on: " << RIon << " ; RI off: " << RIoff
-             << " ; RI on-off: " << RIonOff
-             << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;
-      }  // end every 100 simu steps
-    }    // end every 10 simu steps
-
-    if (writePositionExport && i % outputFrequence == 0) {
-      // export cell position
-      position_exporteur(i);
+    // prepare export
+    ofstream outputFile;
+    // delete previous simulation export
+    if (writePositionExport && system(
+      Concat("mkdir -p ", param->output_dir_, "/cells_position").c_str())) {
+      cout << "error in " << param->output_dir_
+           << "/cells_position folder creation" << endl;
+    }
+    // create RI export file
+    if (writeRI && !writePositionExport &&
+      system(Concat("mkdir -p ", param->output_dir_, "/cells_position").c_str())){
+      cout << "error in " << param->output_dir_
+           << "/cells_position folder creation" << endl;
+    } else {
+      outputFile.open(Concat(param->output_dir_, "/cells_position/RI_" +
+                      to_string(mySeed) + ".txt"));
     }
 
-  }  // end for Simulate
+    // 4. Run simulation for maxStep timesteps
+    for (int i = 0; i <= maxStep; i++) {
+      scheduler->Simulate(1);
 
-  outputFile.close();
+      if (i % 10 == 0) {  // write RI in file
+        double RIon = getRI(0);
+        double RIoff = getRI(1);
+        double RIonOff = getRI(2);
+        if (writeRI) {
+          outputFile << RIon << " " << RIoff << " " << RIonOff << "\n";
+        }
 
-  // remove previous swc files and export neurons morphology
-  if (writeSWC &&
-      !system(Concat("mkdir -p ", param->output_dir_, "/swc_files").c_str())) {
-    if (system(Concat("rm -r ", param->output_dir_, "/swc_files/*").c_str())) {
-      cout << "could not delete previous swc files" << endl;
-    };
-    morpho_exporteur();
-  }
+        // print
+        if (i % 100 == 0) {
+          // get cell list size
+          rm = simulation.GetResourceManager();
+          auto my_cells = rm->template Get<MyCell>();
+          int numberOfCells = my_cells->size();
+          // TODO: vector for unknow number of cell type
+          int numberOfCells0 = 0;
+          int numberOfCells1 = 0;
+          int numberOfCells2 = 0;
+          int numberOfDendrites = 0;
 
-  if (writeMigrationDistance) {
-    exportMigrationDist();
-  }
+          for (int cellNum = 0; cellNum < numberOfCells;
+               cellNum++) {  // for each cell in simulation
+            numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
+            auto thisCellType = (*my_cells)[cellNum].GetCellType();
+            if (thisCellType == 0) {
+              numberOfCells0++;
+            } else if (thisCellType == 1) {
+              numberOfCells1++;
+            } else if (thisCellType == 2) {
+              numberOfCells2++;
+            }
+          }
+          cout << "-- step " << i << " out of " << maxStep << " --\n"
+               << numberOfCells << " cells in simulation: "
+               << (1 - ((double)numberOfCells / num_cells)) * 100
+               << "% of cell death\n"
+               << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
+               << " cells are type 1 (off) ; " << numberOfCells2
+               << " cells are type 2 (on-off) ; "
+               << (double)(numberOfCells0 + numberOfCells1 + numberOfCells2) /
+                      numberOfCells * 100
+               << "% got type\n"
+               << numberOfDendrites << " apical dendrites in simulation: "
+               << (double)numberOfDendrites / numberOfCells << " dendrites per cell\n"
+               << "RI on: " << RIon << " ; RI off: " << RIoff
+               << " ; RI on-off: " << RIonOff
+               << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;
+        }  // end every 100 simu steps
+      }    // end every 10 simu steps
+
+      if (writePositionExport && i % outputFrequence == 0) {
+        // export cell position
+        position_exporteur(i);
+      }
+
+    }  // end for Simulate
+
+    outputFile.close();
+
+    // remove previous swc files and export neurons morphology
+    if (writeSWC &&
+        !system(Concat("mkdir -p ", param->output_dir_, "/swc_files").c_str())) {
+      if (system(Concat("rm -r ", param->output_dir_, "/swc_files/*").c_str())) {
+        cout << "could not delete previous swc files" << endl;
+      };
+      morpho_exporteur();
+    }
+
+    if (writeMigrationDistance) {
+      exportMigrationDist();
+    }
+
+    param_outputFile << "\n";
+
+} // end for param
+
+  param_outputFile.close();
+
+  delete simulation;
 
   return 0;
+
 } // end Simulate
 
 }  // end namespace bdm
