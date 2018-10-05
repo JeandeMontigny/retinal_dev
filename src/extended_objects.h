@@ -7,19 +7,19 @@
 namespace bdm {
 using namespace std;
 
-  // Define my custom cell MyCell extending NeuronSoma
-  BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
-    BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_,
+  // Define my custom cell RetinalGanglionCell extending NeuronSoma
+  BDM_SIM_OBJECT(RetinalGanglionCell, experimental::neuroscience::NeuronSoma) {
+    BDM_SIM_OBJECT_HEADER(RetinalGanglionCellExt, 1, cell_type_, internal_clock_,
       labelSWC_, previous_position_, distance_travelled_);
 
    public:
-    MyCellExt() {}
+    RetinalGanglionCellExt() {}
 
-    MyCellExt(const array<double, 3>& position) : Base(position) {}
+    RetinalGanglionCellExt(const array<double, 3>& position) : Base(position) {}
 
     /// Default event constructor
     template <typename TEvent, typename TOther>
-    MyCellExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
+    RetinalGanglionCellExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
     }
 
     /// Default event handler (exising biology module won't be modified on

@@ -11,7 +11,7 @@ live = false
 export_interval = 2
 
     [[visualize_sim_object]]
-    name = "MyCell"
+    name = "RetinalGanglionCell"
     additional_data_members = [ "cell_type_" ]
 
     [[visualize_sim_object]]

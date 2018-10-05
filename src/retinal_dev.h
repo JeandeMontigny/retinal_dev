@@ -25,11 +25,11 @@ enum Substances {
 BDM_CTPARAM(experimental::neuroscience) {
   BDM_CTPARAM_HEADER(experimental::neuroscience);
 
-  using SimObjectTypes = CTList<MyCell, MyNeurite>;
-  using NeuronSoma = MyCell;
+  using SimObjectTypes = CTList<RetinalGanglionCell, MyNeurite>;
+  using NeuronSoma = RetinalGanglionCell;
   using NeuriteElement = MyNeurite;
 
-  BDM_CTPARAM_FOR(bdm, MyCell) {
+  BDM_CTPARAM_FOR(bdm, RetinalGanglionCell) {
     using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM, Neurite_creation_BM>;
   };
 
@@ -151,7 +151,7 @@ inline int Simulate(int argc, const char** argv) {
       if (i % 100 == 0) {
         // get cell list size
         rm = simulation.GetResourceManager();
-        auto my_cells = rm->template Get<MyCell>();
+        auto my_cells = rm->template Get<RetinalGanglionCell>();
         int numberOfCells = my_cells->size();
         // TODO: vector for unknow number of cell type
         int numberOfCells0 = 0;

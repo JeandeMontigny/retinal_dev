@@ -11,7 +11,7 @@ using namespace std;
     auto* rm = sim->GetResourceManager();
     auto* random = sim->GetRandom();
 
-    auto* container = rm->template Get<MyCell>();
+    auto* container = rm->template Get<RetinalGanglionCell>();
     container->reserve(num_cells);
 
     for (int i = 0; i < num_cells; i++) {
@@ -20,7 +20,7 @@ using namespace std;
       double z = random->Uniform(min + 20, 40);  // 24
       std::array<double, 3> position = {x, y, z};
 
-      auto&& cell = rm->template New<MyCell>(position);
+      auto&& cell = rm->template New<RetinalGanglionCell>(position);
       cell.SetDiameter(random->Uniform(7, 8));  // random diameter
       cell.SetCellType(cellType);
       cell.SetInternalClock(0);
@@ -67,7 +67,7 @@ using namespace std;
 
     auto* sim = TSimulation::GetActive();
     auto* rm = sim->GetResourceManager();
-    auto my_cells = rm->template Get<MyCell>();
+    auto my_cells = rm->template Get<RetinalGanglionCell>();
     int numberOfCells = my_cells->size();
 
     for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
@@ -106,7 +106,7 @@ using namespace std;
     auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
     int seed = sim->GetRandom()->GetSeed();
-    auto my_cells = rm->template Get<MyCell>();
+    auto my_cells = rm->template Get<RetinalGanglionCell>();
 
     for (unsigned int cellNum = 0; cellNum < my_cells->size(); cellNum++) {
       auto&& cell = (*my_cells)[cellNum];
@@ -231,7 +231,7 @@ using namespace std;
   inline double getRI(int desiredCellType) {
     auto* sim = TSimulation::GetActive();
     auto* rm = sim->GetResourceManager();
-    auto my_cells = rm->template Get<MyCell>();  // get cell list
+    auto my_cells = rm->template Get<RetinalGanglionCell>();  // get cell list
     vector<array<double, 3>> coordList;          // list of coordinate
     int numberOfCells = my_cells->size();
     // for each cell in simulation
@@ -252,7 +252,7 @@ using namespace std;
     auto* sim = TSimulation::GetActive();
     auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
-    auto my_cells = rm->template Get<MyCell>();  // get cell list
+    auto my_cells = rm->template Get<RetinalGanglionCell>();  // get cell list
     vector<array<double, 3>> coordList;          // list of coordinate
     int numberOfCells = my_cells->size();
 

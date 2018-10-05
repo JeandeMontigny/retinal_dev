@@ -156,8 +156,8 @@ using namespace std;
 
         // cell death for homotype cells in contact
         auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
-          if (neighbor->template IsSoType<MyCell>()) {
-            auto&& neighbor_rc = neighbor->template ReinterpretCast<MyCell>();
+          if (neighbor->template IsSoType<RetinalGanglionCell>()) {
+            auto&& neighbor_rc = neighbor->template ReinterpretCast<RetinalGanglionCell>();
             auto n_soptr = neighbor_rc->GetSoPtr();
             if (cell->GetCellType() == n_soptr->GetCellType() &&
                 random->Uniform(0, 1) < 0.2) {
