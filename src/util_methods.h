@@ -53,7 +53,7 @@ static void ProgenitorsCreator(double min, double max, int num_cells) {
       cell.SetPreviousPosition(position);
       cell.AddBiologyModule(Substance_secretion_BM());
       cell.AddBiologyModule(RGC_mosaic_BM());
-      cell.AddBiologyModule(Neurite_creation_BM());
+      cell.AddBiologyModule(Rgc_Neurite_creation_BM());
     }
 
     container->Commit();

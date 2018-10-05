@@ -8,12 +8,12 @@ namespace bdm {
 using namespace std;
 
   // Define cell behavior for neurite creation
-  struct Neurite_creation_BM: public BaseBiologyModule {
-    Neurite_creation_BM() : BaseBiologyModule(gNullEventId) {}
+  struct Rgc_Neurite_creation_BM: public BaseBiologyModule {
+    Rgc_Neurite_creation_BM() : BaseBiologyModule(gNullEventId) {}
 
     /// Default event constructor
     template <typename TEvent, typename TBm>
-    Neurite_creation_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {}
+    Rgc_Neurite_creation_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {}
 
     template <typename TEvent, typename... TBms>
     void EventHandler(const TEvent&, TBms*...) {}
@@ -41,8 +41,8 @@ using namespace std;
     } // end run
 
   private:
-    ClassDefNV(Neurite_creation_BM, 1);
-  }; // endNeurite_creation_BM
+    ClassDefNV(Rgc_Neurite_creation_BM, 1);
+  }; // endRgc_Neurite_creation_BM
 
 
   // Define cell behavior for mosaic formation
@@ -299,7 +299,7 @@ using namespace std;
         if (cell->GetInternalClock() == 0) {
           cell->AddBiologyModule(Substance_secretion_BM());
           cell->AddBiologyModule(RGC_mosaic_BM());
-          cell->AddBiologyModule(Neurite_creation_BM());
+          cell->AddBiologyModule(Rgc_Neurite_creation_BM());
           //TODO: remove that BM
         }
         cell->SetInternalClock(cell->GetInternalClock()+1);

@@ -6,9 +6,13 @@
 #include "substance_initializers.h"
 
 #include "extended_objects.h"
+
 #include "progenitor_bm.h"
 #include "rgc_soma_bm.h"
 #include "rgc_dendrite_bm.h"
+#include "amacrine_soma_bm.h"
+#include "amacrine_dendrite_bm.h"
+
 #include "util_methods.h"
 
 namespace bdm {
@@ -38,7 +42,8 @@ BDM_CTPARAM(experimental::neuroscience) {
   BDM_CTPARAM_FOR(bdm, MyCell) {
     using BiologyModules =
       CTList<Progenitor_behaviour_BM, RGC_axial_migration_BM,
-      RGC_mosaic_BM, Substance_secretion_BM, Neurite_creation_BM>;
+      Amacrine_axial_migration_BM, Amacrine_Neurite_creation_BM,
+      RGC_mosaic_BM, Substance_secretion_BM, Rgc_Neurite_creation_BM>;
   };
 
   BDM_CTPARAM_FOR(bdm, MyNeurite) {
@@ -54,7 +59,7 @@ inline int Simulate(int argc, const char** argv) {
   int maxStep = 500;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
-  int num_cells = 1100;
+  int num_cells = 4400;
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
