@@ -6,6 +6,7 @@
 #include "substance_initializers.h"
 
 #include "extended_objects.h"
+#include "progenitor_bm.h"
 #include "rgc_soma_bm.h"
 #include "rgc_dendrite_bm.h"
 #include "util_methods.h"
@@ -25,17 +26,23 @@ enum Substances {
 BDM_CTPARAM(experimental::neuroscience) {
   BDM_CTPARAM_HEADER(experimental::neuroscience);
 
-  using SimObjectTypes = CTList<RetinalGanglionCell, MyNeurite>;
-  using NeuronSoma = RetinalGanglionCell;
+  using SimObjectTypes = CTList<MyCell, MyNeurite>;
+  // using NeuronSoma = Progenitor;
+  using NeuronSoma = MyCell;
   using NeuriteElement = MyNeurite;
 
-  BDM_CTPARAM_FOR(bdm, RetinalGanglionCell) {
-    using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM, Neurite_creation_BM>;
+  // BDM_CTPARAM_FOR(bdm, Progenitor) {
+  //   using BiologyModules = CTList<Progenitor_behaviour_BM>;
+  // };
+
+  BDM_CTPARAM_FOR(bdm, MyCell) {
+    using BiologyModules =
+      CTList<Progenitor_behaviour_BM, RGC_axial_migration_BM,
+      RGC_mosaic_BM, Substance_secretion_BM, Neurite_creation_BM>;
   };
 
   BDM_CTPARAM_FOR(bdm, MyNeurite) {
-    using BiologyModules =
-        CTList<RGC_dendrite_growth_BM>;
+    using BiologyModules = CTList<RGC_dendrite_growth_BM>;
   };
 };
 
@@ -44,9 +51,9 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 3000;
+  int maxStep = 500;
   // Create an artificial bounds for the simulation space
-  int cubeDim = 250;
+  int cubeDim = 500;
   int num_cells = 1100;
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
@@ -81,15 +88,17 @@ inline int Simulate(int argc, const char** argv) {
   random->SetSeed(mySeed);
   cout << "modelling with seed " << mySeed << endl;
 
+  ProgenitorsCreator(param->min_bound_, param->max_bound_, num_cells);
+
   // min position, max position, number of cells , cell type
-  CellCreator(param->min_bound_, param->max_bound_, 0, 0);
-  cout << "on cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 0, 1);
-  cout << "off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, 0, 2);
-  cout << "on-off cells created" << endl;
-  CellCreator(param->min_bound_, param->max_bound_, num_cells, -1);
-  cout << "undifferentiated cells created" << endl;
+  MyCellCreator(param->min_bound_, param->max_bound_, 0, 0);
+  // cout << "on cells created" << endl;
+  MyCellCreator(param->min_bound_, param->max_bound_, 0, 1);
+  // cout << "off cells created" << endl;
+  MyCellCreator(param->min_bound_, param->max_bound_, 0, 2);
+  // cout << "on-off cells created" << endl;
+  MyCellCreator(param->min_bound_, param->max_bound_, 0, -1);
+  // cout << "undifferentiated cells created" << endl;
 
   // 3. Define substances
   // Order: substance_name, diffusion_coefficient, decay_constant, resolution
@@ -102,6 +111,14 @@ inline int Simulate(int argc, const char** argv) {
                                     param->max_bound_ / 10);
   ModelInitializer::DefineSubstance(2, "on_off_diffusion", 1, 0.5,
                                     param->max_bound_ / 10);
+
+  // gaussian substances
+  // create substance for Progenitor guide
+  ModelInitializer::DefineSubstance(5, "progenitors_guide", 0, 0,
+                                    param->max_bound_ / 2);
+  ModelInitializer::InitializeSubstance(5, "progenitors_guide",
+                                        GaussianBand(param->max_bound_ / 2,
+                                          param->max_bound_ / 10, Axis::kZAxis));
 
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide", 0, 0,
@@ -151,7 +168,7 @@ inline int Simulate(int argc, const char** argv) {
       if (i % 100 == 0) {
         // get cell list size
         rm = simulation.GetResourceManager();
-        auto my_cells = rm->template Get<RetinalGanglionCell>();
+        auto my_cells = rm->template Get<MyCell>();
         int numberOfCells = my_cells->size();
         // TODO: vector for unknow number of cell type
         int numberOfCells0 = 0;

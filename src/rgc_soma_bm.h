@@ -21,7 +21,7 @@ using namespace std;
     template <typename T, typename TSimulation = Simulation<>>
     void Run(T* soma) {
 
-      bool createDendrites = true;
+      bool createDendrites = false;
 
       if (createDendrites && soma->GetInternalClock() == 1600 && soma->GetCellType() != -1) {
         auto* sim = TSimulation::GetActive();
@@ -156,8 +156,8 @@ using namespace std;
 
         // cell death for homotype cells in contact
         auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
-          if (neighbor->template IsSoType<RetinalGanglionCell>()) {
-            auto&& neighbor_rc = neighbor->template ReinterpretCast<RetinalGanglionCell>();
+          if (neighbor->template IsSoType<MyCell>()) {
+            auto&& neighbor_rc = neighbor->template ReinterpretCast<MyCell>();
             auto n_soptr = neighbor_rc->GetSoPtr();
             if (cell->GetCellType() == n_soptr->GetCellType() &&
                 random->Uniform(0, 1) < 0.2) {
@@ -279,6 +279,38 @@ using namespace std;
     DiffusionGrid* dg_2_ = nullptr;
     ClassDefNV(Substance_secretion_BM, 1);
   };  // end biologyModule Substance_secretion_BM
+
+
+  // Define cell behavior for RGC migration to GCL
+  struct RGC_axial_migration_BM: public BaseBiologyModule {
+    RGC_axial_migration_BM() : BaseBiologyModule(gNullEventId) {}
+
+    /// Default event constructor
+    template <typename TEvent, typename TBm>
+    RGC_axial_migration_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {}
+
+    template <typename TEvent, typename... TBms>
+    void EventHandler(const TEvent&, TBms*...) {}
+
+    template <typename T, typename TSimulation = Simulation<>>
+    void Run(T* cell) {
+      if (cell->GetInternalClock() < 0) {
+        // TODO: migrate to GCL
+        if (cell->GetInternalClock() == 0) {
+          cell->AddBiologyModule(Substance_secretion_BM());
+          cell->AddBiologyModule(RGC_mosaic_BM());
+          cell->AddBiologyModule(Neurite_creation_BM());
+          //TODO: remove that BM
+        }
+        cell->SetInternalClock(cell->GetInternalClock()+1);
+      } // end if clock < 0
+
+    } // end run
+
+  private:
+    ClassDefNV(RGC_axial_migration_BM, 1);
+  }; // RGC_axial_migration_BM
+
 
 } // end namespace bdm
 
