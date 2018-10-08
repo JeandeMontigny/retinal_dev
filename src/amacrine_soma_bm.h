@@ -68,20 +68,24 @@ struct Amacrine_axial_migration_BM: public BaseBiologyModule {
     dg_2_->GetGradient(position, &gradient_2_);
     double zDirection = gradient_0_[2] + gradient_1_[2] + gradient_2_[2];
 
-    //TODO: dirty
     if (zDirection < 0) {
-      while (zDirection > -1) {
-        zDirection = zDirection * 10;
+      int multiple = 0;
+      double temps = zDirection;
+      while (temps > -1) {
+        temps = temps * 10;
+        multiple ++;
       }
+      zDirection = zDirection * pow(10, multiple-1);
     }
+
     // migrate to INL
     if (concentration < 1e-10 + random->Uniform(-2e-11, 2e-11)) {
-      cell->UpdatePosition({0,0,zDirection});
+      cell->UpdatePosition({0, 0, zDirection});
     }
     else {
       //TODO: seg fault
       // cell->AddBiologyModule(Amacrine_Neurite_creation_BM());
-    //TODO: remove that BM
+      //TODO: remove that BM
     }
   } // end run
 
