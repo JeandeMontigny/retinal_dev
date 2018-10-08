@@ -17,7 +17,7 @@ static void ProgenitorsCreator(double min, double max, int num_cells) {
   for (int i = 0; i < num_cells; i++) {
     double x = random->Uniform(min + 100, max - 100);
     double y = random->Uniform(min + 100, max - 100);
-    double z = random->Uniform(max-150, max-145);
+    double z = random->Uniform(max-200, max-195);
     std::array<double, 3> position = {x, y, z};
 
     auto&& cell = rm->template New<MyCell>(position);

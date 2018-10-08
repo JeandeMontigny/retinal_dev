@@ -56,7 +56,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 500;
+  int maxStep = 2200;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400;
@@ -122,8 +122,8 @@ inline int Simulate(int argc, const char** argv) {
   ModelInitializer::DefineSubstance(5, "progenitors_guide", 0, 0,
                                     param->max_bound_ / 2);
   ModelInitializer::InitializeSubstance(5, "progenitors_guide",
-                                        GaussianBand(param->max_bound_ / 2,
-                                          param->max_bound_ / 10, Axis::kZAxis));
+                                        GaussianBand(param->min_bound_,
+                                          param->max_bound_ / 5, Axis::kZAxis));
 
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide", 0, 0,
@@ -193,18 +193,18 @@ inline int Simulate(int argc, const char** argv) {
             numberOfCells2++;
           }
         }
+        int nbOfRGC = numberOfCells0+numberOfCells1+numberOfCells2;
         cout << "-- step " << i << " out of " << maxStep << " --\n"
-             << numberOfCells << " cells in simulation: "
-             << (1 - ((double)numberOfCells / num_cells)) * 100
-             << "% of cell death\n"
+             << numberOfCells << " cells in simulation, "
+             << nbOfRGC << " a are RGC ("
+             << (1 - ((double)nbOfRGC / num_cells)) * 100
+             << "% of cell death)\n"
              << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
              << " cells are type 1 (off) ; " << numberOfCells2
              << " cells are type 2 (on-off) ; "
-             << (double)(numberOfCells0 + numberOfCells1 + numberOfCells2) /
-                    numberOfCells * 100
-             << "% got type\n"
+             << (double)(nbOfRGC) / nbOfRGC * 100  << "% got type\n"
              << numberOfDendrites << " apical dendrites in simulation: "
-             << (double)numberOfDendrites / numberOfCells << " dendrites per cell\n"
+             << (double)numberOfDendrites / nbOfRGC << " dendrites per cell\n"
              << "RI on: " << RIon << " ; RI off: " << RIoff
              << " ; RI on-off: " << RIonOff
              << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;

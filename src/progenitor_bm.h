@@ -42,13 +42,13 @@ struct Progenitor_behaviour_BM : public BaseBiologyModule {
     }
 
     if (!rgc_generated_) {
-      if (concentration < 0.004) {
+      if (concentration < 5e-5) {
         cell->UpdatePosition(gradient);
       }
-      if (concentration > 0.00039) {
+      if (concentration > 4.6e-05) {
         auto&& daughterRGC = cell->Divide();
         daughterRGC->SetCellType(-1);
-        daughterRGC->SetInternalClock(-200);
+        daughterRGC->SetInternalClock(-100);
         daughterRGC->AddBiologyModule(RGC_axial_migration_BM());
         rgc_generated_ = true;
       }
@@ -56,7 +56,7 @@ struct Progenitor_behaviour_BM : public BaseBiologyModule {
     else if (!migrated_back_) {
       cell->UpdatePosition(Math::ScalarMult(-1, gradient));
       // random: don't stop as a straigh line
-      if (concentration < 0.0001 + random->Uniform(-0.00002, 0.00002)) {
+      if (concentration < 5e-6 + random->Uniform(-2e-7, 2e-7)) {
         migrated_back_ = true;
       }
     }

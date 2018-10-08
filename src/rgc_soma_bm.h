@@ -294,20 +294,38 @@ using namespace std;
 
     template <typename T, typename TSimulation = Simulation<>>
     void Run(T* cell) {
-      if (cell->GetInternalClock() < 0) {
-        // TODO: migrate to GCL
+      auto* sim = TSimulation::GetActive();
+      auto* rm = sim->GetResourceManager();
+      auto* random = sim->GetRandom();
+
+      if (!init_) {
+        dg_substanceGuide_ = rm->GetDiffusionGrid("progenitors_guide");
+        init_ = true;
+      }
+
+      if (cell->GetInternalClock() <= 0) {
+        array<double, 3> gradient;
+        dg_substanceGuide_->GetGradient(cell->GetPosition(), &gradient);
+        double concentration = dg_substanceGuide_->GetConcentration(cell->GetPosition());
+
+        // migrate to GCL ~ 300
+        if (concentration < 0.0003 + random->Uniform(-8e-5, 8e-5)) {
+          cell->UpdatePosition(gradient);
+        }
         if (cell->GetInternalClock() == 0) {
           cell->AddBiologyModule(Substance_secretion_BM());
           cell->AddBiologyModule(RGC_mosaic_BM());
-          cell->AddBiologyModule(Rgc_Neurite_creation_BM());
+          // cell->AddBiologyModule(Rgc_Neurite_creation_BM());
           //TODO: remove that BM
         }
         cell->SetInternalClock(cell->GetInternalClock()+1);
-      } // end if clock < 0
+      } // end if clock <= 0
 
     } // end run
 
   private:
+    bool init_ = false;
+    DiffusionGrid* dg_substanceGuide_ = nullptr;
     ClassDefNV(RGC_axial_migration_BM, 1);
   }; // RGC_axial_migration_BM
 
