@@ -48,7 +48,7 @@ using namespace std;
 
     /// Default event constructor
     template <typename TEvent, typename TOther>
-    MyCellExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
+    MyCellExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) : Base(event, other, new_oid){
     }
 
     /// Default event handler (exising biology module won't be modified on
