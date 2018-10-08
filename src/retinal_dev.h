@@ -173,6 +173,7 @@ struct Substance_secretion_BM : public BaseBiologyModule {
     }
     auto& secretion_position = cell->GetPosition();
     // if on cell, secrete on cells substance
+    // dg_0_->IncreaseConcentrationBy(secretion_position, 1e5/pow(dg_0_->GetBoxLength(), 3));
     dg_0_->IncreaseConcentrationBy(secretion_position, 1);
   }
 
@@ -236,7 +237,7 @@ inline int Simulate(int argc, const char** argv) {
 
   // 3. Define substances
   ModelInitializer::DefineSubstance(0, "on_diffusion", 1, 0.5,
-                                    param->max_bound_ / 4);
+                                    param->max_bound_);
 
   // 4. Run simulation for maxStep timesteps
   scheduler->Simulate(100);
@@ -246,9 +247,8 @@ inline int Simulate(int argc, const char** argv) {
   ofstream diffu_outputFile;
   diffu_outputFile.open("diffusion_study.txt");
 
-  for (double dist=0; dist < 70; dist=dist+0.1) {
+  for (double dist=0; dist < 100; dist=dist+0.1) {
     double concentration = dg_0_->GetConcentration({dist, 50, 50});
-    if (concentration > 0.1) { concentration=0.1; }
     diffu_outputFile << dist << " " << concentration << "\n";
   }
   diffu_outputFile.close();
