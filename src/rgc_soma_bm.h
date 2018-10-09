@@ -310,7 +310,9 @@ using namespace std;
 
         // migrate to GCL ~ 300
         if (concentration < 0.0003 + random->Uniform(-8e-5, 8e-5)) {
-          cell->UpdatePosition(gradient);
+          cell->UpdatePosition({random->Uniform(-0.1, 0.1),
+            // note: random impact RI
+            random->Uniform(-0.1, 0.1), gradient[2] + random->Uniform(-0.2, 0)});
         }
         if (cell->GetInternalClock() == 0) {
           cell->AddBiologyModule(Substance_secretion_BM());

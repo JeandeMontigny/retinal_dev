@@ -41,10 +41,13 @@ struct Progenitor_behaviour_BM : public BaseBiologyModule {
       cell->ChangeVolume(100);
     }
 
+    // migrate to ~400 for RGC generation
     if (!rgc_generated_) {
       if (concentration < 5e-5) {
-        cell->UpdatePosition(gradient);
+        cell->UpdatePosition({random->Uniform(-0.1, 0.1),
+          random->Uniform(-0.1, 0.1), gradient[2] + random->Uniform(-0.2, 0)});
       }
+      // RGC generation
       if (concentration > 4.6e-05) {
         auto&& daughterRGC = cell->Divide();
         daughterRGC->SetCellType(-1);
@@ -53,8 +56,10 @@ struct Progenitor_behaviour_BM : public BaseBiologyModule {
         rgc_generated_ = true;
       }
     }
+    // migrate back to form ONL ~500
     else if (!migrated_back_) {
-      cell->UpdatePosition(Math::ScalarMult(-1, gradient));
+      cell->UpdatePosition({random->Uniform(-0.1, 0.1),
+        random->Uniform(-0.1, 0.1), -gradient[2] + random->Uniform(0, 0.2)});
       // random: don't stop as a straigh line
       if (concentration < 5e-6 + random->Uniform(-2e-7, 2e-7)) {
         migrated_back_ = true;
