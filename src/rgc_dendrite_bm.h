@@ -13,7 +13,7 @@ using namespace std;
     /// Default event constructor
     template <typename TEvent, typename TBm>
     RGC_dendrite_growth_BM(const TEvent& event, TBm* other,
-                           uint64_t new_oid = 0) : BaseBiologyModule(event, other, new_oid) {
+      uint64_t new_oid = 0) : BaseBiologyModule(event, other, new_oid) {
     }
 
     template <typename T, typename TSimulation = Simulation<>>

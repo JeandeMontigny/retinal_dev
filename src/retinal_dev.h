@@ -47,7 +47,8 @@ BDM_CTPARAM(experimental::neuroscience) {
   };
 
   BDM_CTPARAM_FOR(bdm, MyNeurite) {
-    using BiologyModules = CTList<RGC_dendrite_growth_BM>;
+    using BiologyModules =
+      CTList<Amacrine_dendrite_growth_BM, RGC_dendrite_growth_BM>;
   };
 };
 

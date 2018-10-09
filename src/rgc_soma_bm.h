@@ -7,7 +7,7 @@
 namespace bdm {
 using namespace std;
 
-  // Define cell behavior for neurite creation
+  // Define RGC behavior for neurite creation
   struct Rgc_Neurite_creation_BM: public BaseBiologyModule {
     Rgc_Neurite_creation_BM() : BaseBiologyModule(gNullEventId) {}
 
@@ -42,7 +42,7 @@ using namespace std;
 
   private:
     ClassDefNV(Rgc_Neurite_creation_BM, 1);
-  }; // endRgc_Neurite_creation_BM
+  }; // end Rgc_Neurite_creation_BM
 
 
   // Define cell behavior for mosaic formation
@@ -317,7 +317,7 @@ using namespace std;
         if (cell->GetInternalClock() == 0) {
           cell->AddBiologyModule(Substance_secretion_BM());
           cell->AddBiologyModule(RGC_mosaic_BM());
-          // cell->AddBiologyModule(Rgc_Neurite_creation_BM());
+          cell->AddBiologyModule(Rgc_Neurite_creation_BM());
           //TODO: remove that BM
         }
         cell->SetInternalClock(cell->GetInternalClock()+1);

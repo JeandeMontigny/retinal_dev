@@ -1,10 +1,13 @@
 #ifndef AMACRINE_SOMA_BM_
 #define AMACRINE_SOMA_BM_
 
+#include "amacrine_dendrite_bm.h"
+#include "extended_objects.h"
+
 namespace bdm {
 using namespace std;
 
-// Define cell behavior for neurite creation
+// Define Amacrine cell behavior for neurite creation
 struct Amacrine_Neurite_creation_BM: public BaseBiologyModule {
   Amacrine_Neurite_creation_BM() : BaseBiologyModule(gNullEventId) {}
 
@@ -17,17 +20,20 @@ struct Amacrine_Neurite_creation_BM: public BaseBiologyModule {
 
   template <typename T, typename TSimulation = Simulation<>>
   void Run(T* soma) {
-
-    if (!init_) {
-      //TODO: add correct number of dendrites
-      soma->ExtendNewNeurite({0,0,-1});
-      init_ = true;
+    if (soma->GetDaughters().size()==0) {
+      auto* sim = TSimulation::GetActive();
+      auto* random = sim->GetRandom();
+      //TODO: add correct number of dendrites: 6.4, std 1.6
+      for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
+        auto&& ne = soma->ExtendNewNeurite({0, 0, -1});
+        ne->AddBiologyModule(Amacrine_dendrite_growth_BM());
+        ne->SetMySoma(soma->GetSoPtr());
+      }
       //TODO: remove this BM
     }
   } // end run
 
 private:
-  bool init_ = false;
   ClassDefNV(Amacrine_Neurite_creation_BM, 1);
 }; // end Amacrine_Neurite_creation_BM
 
@@ -89,13 +95,15 @@ struct Amacrine_axial_migration_BM: public BaseBiologyModule {
         cell->UpdatePosition({random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), zDirection});
       }
       else {
-        //TODO: seg fault
-        // cell->AddBiologyModule(Amacrine_Neurite_creation_BM());
         //TODO: remove that BM
         migrated_ = true;
       }
 
     } // end if not migrated_
+    else {
+      //TODO: seg fault
+      cell->AddBiologyModule(Amacrine_Neurite_creation_BM());
+    }
   } // end run
 
 private:
