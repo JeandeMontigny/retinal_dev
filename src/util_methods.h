@@ -17,7 +17,7 @@ using namespace std;
     for (int i = 0; i < num_cells; i++) {
       double x = random->Uniform(min + 100, max - 100);
       double y = random->Uniform(min + 100, max - 100);
-      double z = random->Uniform(min + 20, 40);  // 24
+      double z = random->Uniform(min + 25, 35);  // 24
       std::array<double, 3> position = {x, y, z};
 
       auto&& cell = rm->template New<MyCell>(position);

@@ -44,7 +44,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 3000;
+  int maxStep = 1700; // 1700 steps needed by mosaics mechanisms to reach equilibrium
   // Create an artificial bounds for the simulation space
   int cubeDim = 250;
   int num_cells = 1100;
@@ -53,7 +53,7 @@ inline int Simulate(int argc, const char** argv) {
 
   // set write output param
   // if you want to write file for RI and cell position
-  bool writeRI = false;
+  bool writeRI = true;
   bool writePositionExport = false;
   bool writeSWC = false;
   bool writeMigrationDistance = false;
@@ -96,12 +96,12 @@ inline int Simulate(int argc, const char** argv) {
   // if diffusion_coefficient is low, diffusion distance is short
   // if decay_constant is high, diffusion distance is short
   // resolution is number of point in one domaine dimension
-  ModelInitializer::DefineSubstance(0, "on_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
-  ModelInitializer::DefineSubstance(1, "off_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
-  ModelInitializer::DefineSubstance(2, "on_off_diffusion", 1, 0.5,
-                                    param->max_bound_ / 10);
+  ModelInitializer::DefineSubstance(0, "on_diffusion", 0.65, 0,
+                                    param->max_bound_ / 2);
+  ModelInitializer::DefineSubstance(1, "off_diffusion", 0.65, 0,
+                                    param->max_bound_ / 2);
+  ModelInitializer::DefineSubstance(2, "on_off_diffusion", 0.65, 0,
+                                    param->max_bound_ / 2);
 
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide", 0, 0,

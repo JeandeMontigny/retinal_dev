@@ -21,7 +21,7 @@ using namespace std;
     template <typename T, typename TSimulation = Simulation<>>
     void Run(T* soma) {
 
-      bool createDendrites = true;
+      bool createDendrites = false;
 
       if (createDendrites && soma->GetInternalClock() == 1600 && soma->GetCellType() != -1) {
         auto* sim = TSimulation::GetActive();
@@ -131,7 +131,7 @@ using namespace std;
       if (withMovement && cellClock >= 200 && cellClock < 1600) {
         // cell movement based on homotype substance gradient
         // 0. with cell death - 0. without
-        if (concentration >= 1.28427) {  // 1.28428 - no artifact - ~4.5
+        if (concentration >= 1.3) {  // 1.28428 - no artifact - ~4.5
           cell->UpdatePosition(diff_gradient);
           array<double, 3> previousPosition = cell->GetPreviousPosition();
           array<double, 3> currentPosition = cell->GetPosition();
@@ -150,7 +150,7 @@ using namespace std;
         // with cell fate: 1.29208800011691 - 1.2920880001169 - 1.29
         // with cell movement:
         // with cell fate and cell movement: 1.285 - random < 0.01
-        if (concentration > 1.285 && random->Uniform(0, 1) < 0.01) {
+        if (concentration > 1.43 && random->Uniform(0, 1) < 0.01) {
           cell->RemoveFromSimulation();
         }
 
