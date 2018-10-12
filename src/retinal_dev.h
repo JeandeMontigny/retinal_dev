@@ -44,7 +44,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 1700; // 1700 steps needed by mosaics mechanisms to reach equilibrium
+  int maxStep = 1800; // 1700 steps needed by mosaics mechanisms to reach equilibrium
   // Create an artificial bounds for the simulation space
   int cubeDim = 250;
   int num_cells = 1100;
@@ -56,7 +56,7 @@ inline int Simulate(int argc, const char** argv) {
   bool writeRI = true;
   bool writePositionExport = false;
   bool writeSWC = false;
-  bool writeMigrationDistance = false;
+  bool writeMigrationDistance = true;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
 
@@ -77,7 +77,7 @@ inline int Simulate(int argc, const char** argv) {
   auto* param = simulation.GetParam();
 
   int mySeed = rand() % 10000;
-  mySeed = 9784;  // 9784
+//  mySeed = 9784;  // 9784
   random->SetSeed(mySeed);
   cout << "modelling with seed " << mySeed << endl;
 
