@@ -47,16 +47,16 @@ inline int Simulate(int argc, const char** argv) {
   ofstream param_outputFile;
   param_outputFile.open("param_RI_study.txt");
 
-  for (int param = 0; param < 1; param = param + 0.1) {
+  for (int parameter = 0; parameter < 0.1; parameter = parameter + 0.1) {
 
-    auto simulation = new Simulation<>(argc, argv);
-    simulation->Activate();
+    // auto simulation = new Simulation<>(argc, argv);
+    // simulation->Activate();
 
     // number of simulation steps
     int maxStep = 1800;
     // Create an artificial bounds for the simulation space
-    int cubeDim = 250;
-    int num_cells = 1100;
+    int cubeDim = 500;
+    int num_cells = 4400;
     double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
     cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
@@ -73,10 +73,7 @@ inline int Simulate(int argc, const char** argv) {
       // cell are created with +100 to min and -100 to max
       param->bound_space_ = true;
       param->min_bound_ = 0;
-      param->max_bound_ = cubeDim + 200;
-      // set min and max length for neurite segments
-      param->neurite_min_length_ = 1.0;
-      param->neurite_max_length_ = 2.0;
+      param->max_bound_ = cubeDim + 100;
     };
 
     Simulation<> simulation(argc, argv, set_param);
@@ -91,13 +88,13 @@ inline int Simulate(int argc, const char** argv) {
     cout << "modelling with seed " << mySeed << endl;
 
     // min position, max position, number of cells , cell type
-    CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 0);
+    CellCreator(param->min_bound_, param->max_bound_, 0, 0); //num_cells/3
     cout << "on cells created" << endl;
-    CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 1);
+    CellCreator(param->min_bound_, param->max_bound_, 0, 1);
     cout << "off cells created" << endl;
-    CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 2);
+    CellCreator(param->min_bound_, param->max_bound_, 0, 2);
     cout << "on-off cells created" << endl;
-    CellCreator(param->min_bound_, param->max_bound_, 0, -1);
+    CellCreator(param->min_bound_, param->max_bound_, num_cells, -1);
     cout << "undifferentiated cells created" << endl;
 
     // 3. Define substances
@@ -105,12 +102,12 @@ inline int Simulate(int argc, const char** argv) {
     // if diffusion_coefficient is low, diffusion distance is short
     // if decay_constant is high, diffusion distance is short
     // resolution is number of point in one domaine dimension
-    ModelInitializer::DefineSubstance(0, "on_diffusion", 1, 0.5,
-                                      param->max_bound_ / 10);
-    ModelInitializer::DefineSubstance(1, "off_diffusion", 1, 0.5,
-                                      param->max_bound_ / 10);
-    ModelInitializer::DefineSubstance(2, "on_off_diffusion", 1, 0.5,
-                                      param->max_bound_ / 10);
+    ModelInitializer::DefineSubstance(0, "on_diffusion", 0.65, 0,
+                                      param->max_bound_ / 2);
+    ModelInitializer::DefineSubstance(1, "off_diffusion", 0.65, 0,
+                                      param->max_bound_ / 2);
+    ModelInitializer::DefineSubstance(2, "on_off_diffusion", 0.65, 0,
+                                      param->max_bound_ / 2);
 
     cout << "substances initialised" << endl;
 
@@ -156,18 +153,14 @@ inline int Simulate(int argc, const char** argv) {
           int numberOfCells2 = 0;
           int numberOfDendrites = 0;
 
-          for (int cellNum = 0; cellNum < numberOfCells;
-               cellNum++) {  // for each cell in simulation
+          for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
             numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
             auto thisCellType = (*my_cells)[cellNum].GetCellType();
-            if (thisCellType == 0) {
-              numberOfCells0++;
-            } else if (thisCellType == 1) {
-              numberOfCells1++;
-            } else if (thisCellType == 2) {
-              numberOfCells2++;
-            }
+            if (thisCellType == 0) { numberOfCells0++; }
+            else if (thisCellType == 1) { numberOfCells1++; }
+            else if (thisCellType == 2) { numberOfCells2++; }
           }
+
           cout << "-- step " << i << " out of " << maxStep << " --\n"
                << numberOfCells << " cells in simulation: "
                << (1 - ((double)numberOfCells / num_cells)) * 100
@@ -208,13 +201,13 @@ inline int Simulate(int argc, const char** argv) {
       exportMigrationDist();
     }
 
-    param_outputFile << "\n";
 
-} // end for param
+    // delete simulation;
+
+} // end for parameter
 
   param_outputFile.close();
 
-  delete simulation;
 
   return 0;
 

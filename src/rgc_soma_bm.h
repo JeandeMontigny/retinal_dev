@@ -130,15 +130,8 @@ using namespace std;
       /* -- cell movement -- */
       if (withMovement && cellClock >= 200 && cellClock < 1600) {
         // cell movement based on homotype substance gradient
-        // 0. with cell death - 0. without
-        if (concentration >= 1.28427) {  // 1.28428 - no artifact - ~4.5
+        if (concentration >= 1.2) {
           cell->UpdatePosition(diff_gradient);
-          array<double, 3> previousPosition = cell->GetPreviousPosition();
-          array<double, 3> currentPosition = cell->GetPosition();
-          cell->SetDistanceTravelled(cell->GetDistanceTravelled() +
-            (sqrt(pow(currentPosition[0] - previousPosition[0], 2) +
-                 pow(currentPosition[1] - previousPosition[1], 2))));
-          cell->SetPreviousPosition(cell->GetPosition());
         }
       }  // end tangential migration
 
@@ -147,10 +140,7 @@ using namespace std;
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        // with cell fate: 1.29208800011691 - 1.2920880001169 - 1.29
-        // with cell movement:
-        // with cell fate and cell movement: 1.285 - random < 0.01
-        if (concentration > 1.285 && random->Uniform(0, 1) < 0.01) {
+        if (concentration > 1.43 && random->Uniform(0, 1) < 0.01) {
           cell->RemoveFromSimulation();
         }
 
