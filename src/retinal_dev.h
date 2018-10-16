@@ -95,8 +95,7 @@ inline int Simulate(int argc, const char** argv) {
   // soma3.AddBiologyModule(Substance_secretion_BM());
 
   // 3. Define substances
-  ModelInitializer::DefineSubstance(0, "on_diffusion", 1, 0.5,
-                                    param->max_bound_/4);
+  ModelInitializer::DefineSubstance(0, "on_diffusion", 0.65, 0, param->max_bound_/2);
 
   // 4. Run simulation for maxStep timesteps
   scheduler->Simulate(100);
