@@ -90,8 +90,7 @@ struct Amacrine_axial_migration_BM: public BaseBiologyModule {
       }
 
       // migrate to INL ~ 350
-      //FIXME: double layer, ~349 and ~339
-      if (concentration < 1e-10) {
+      if (concentration < 8e-3) {
         cell->UpdatePosition({random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), zDirection});
       }
       else {
@@ -102,7 +101,7 @@ struct Amacrine_axial_migration_BM: public BaseBiologyModule {
     } // end if not migrated_
     else {
       //TODO: seg fault
-      cell->AddBiologyModule(Amacrine_Neurite_creation_BM());
+      // cell->AddBiologyModule(Amacrine_Neurite_creation_BM());
     }
   } // end run
 

@@ -131,14 +131,14 @@ using namespace std;
       if (withMovement && cellClock >= 200 && cellClock < 1600) {
         // cell movement based on homotype substance gradient
         // 0. with cell death - 0. without
-        if (concentration >= 1.28427) {  // 1.28428 - no artifact - ~4.5
+        if (concentration >= 1.2) {
           cell->UpdatePosition(diff_gradient);
-          array<double, 3> previousPosition = cell->GetPreviousPosition();
-          array<double, 3> currentPosition = cell->GetPosition();
-          cell->SetDistanceTravelled(cell->GetDistanceTravelled() +
-            (sqrt(pow(currentPosition[0] - previousPosition[0], 2) +
-                 pow(currentPosition[1] - previousPosition[1], 2))));
-          cell->SetPreviousPosition(cell->GetPosition());
+          // array<double, 3> previousPosition = cell->GetPreviousPosition();
+          // array<double, 3> currentPosition = cell->GetPosition();
+          // cell->SetDistanceTravelled(cell->GetDistanceTravelled() +
+          //   (sqrt(pow(currentPosition[0] - previousPosition[0], 2) +
+          //        pow(currentPosition[1] - previousPosition[1], 2))));
+          // cell->SetPreviousPosition(cell->GetPosition());
         }
       }  // end tangential migration
 
@@ -150,7 +150,7 @@ using namespace std;
         // with cell fate: 1.29208800011691 - 1.2920880001169 - 1.29
         // with cell movement:
         // with cell fate and cell movement: 1.285 - random < 0.01
-        if (concentration > 1.285 && random->Uniform(0, 1) < 0.01) {
+        if (concentration > 1.43 && random->Uniform(0, 1) < 0.01) {
           cell->RemoveFromSimulation();
         }
 
@@ -304,20 +304,26 @@ using namespace std;
       }
 
       if (cell->GetInternalClock() <= 0) {
-        array<double, 3> gradient;
-        dg_substanceGuide_->GetGradient(cell->GetPosition(), &gradient);
-        double concentration = dg_substanceGuide_->GetConcentration(cell->GetPosition());
+        if (!migrated_) {
+          array<double, 3> gradient;
+          dg_substanceGuide_->GetGradient(cell->GetPosition(), &gradient);
+          double concentration = dg_substanceGuide_->GetConcentration(cell->GetPosition());
 
-        // migrate to GCL ~ 300
-        if (concentration < 0.0003 + random->Uniform(-8e-5, 8e-5)) {
-          cell->UpdatePosition({random->Uniform(-0.1, 0.1),
-            // note: random impact RI
-            random->Uniform(-0.1, 0.1), gradient[2] + random->Uniform(-0.2, 0)});
-        }
+          // migrate to GCL ~ 300
+          if (concentration < 0.00033 + random->Uniform(-6e-5, 6e-5)) {
+            cell->UpdatePosition({random->Uniform(-0.1, 0.1),
+              // note: random impact RI
+              random->Uniform(-0.1, 0.1), gradient[2] + random->Uniform(-0.2, 0)});
+          }
+          else {
+            migrated_ = true;
+          }
+        } // end not migrated
+
         if (cell->GetInternalClock() == 0) {
           cell->AddBiologyModule(Substance_secretion_BM());
           cell->AddBiologyModule(RGC_mosaic_BM());
-          cell->AddBiologyModule(Rgc_Neurite_creation_BM());
+          // cell->AddBiologyModule(Rgc_Neurite_creation_BM());
           //TODO: remove that BM
         }
         cell->SetInternalClock(cell->GetInternalClock()+1);
@@ -327,6 +333,7 @@ using namespace std;
 
   private:
     bool init_ = false;
+    bool migrated_ = false;
     DiffusionGrid* dg_substanceGuide_ = nullptr;
     ClassDefNV(RGC_axial_migration_BM, 1);
   }; // RGC_axial_migration_BM

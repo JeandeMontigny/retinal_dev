@@ -286,11 +286,13 @@ static void ProgenitorsCreator(double min, double max, int num_cells) {
     migrationDist_outputFile.open(Concat(param->output_dir_, "/migration_distance.txt"));
     // for each cell in simulation
     for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-      // array<double, 3> positionAtCreation = (*my_cells)[cellNum].GetCreationPosition();
-      // array<double, 3> currentPosition = (*my_cells)[cellNum].GetPosition();
-      // double distance = sqrt(pow(currentPosition[0] - positionAtCreation[0], 2) +
-      //                        pow(currentPosition[1] - positionAtCreation[1], 2));
-      double distance = (*my_cells)[cellNum].GetDistanceTravelled();
+      array<double, 3> positionAtCreation = (*my_cells)[cellNum].GetPreviousPosition();
+      array<double, 3> currentPosition = (*my_cells)[cellNum].GetPosition();
+      double distance = sqrt(pow(currentPosition[0] - positionAtCreation[0], 2) +
+                             pow(currentPosition[1] - positionAtCreation[1], 2));
+
+      // double distance = (*my_cells)[cellNum].GetDistanceTravelled();
+
       migrationDist_outputFile << distance << "\n";
     }
     migrationDist_outputFile.close();
