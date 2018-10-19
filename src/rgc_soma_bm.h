@@ -64,9 +64,10 @@ using namespace std;
     void Run(T* cell) {
       auto* sim = TSimulation::GetActive();
       auto* random = sim->GetRandom();
+      auto* param = sim->GetParam();
 
       bool withCellDeath = true;  // run cell death mechanism
-      bool withMovement = true;   // run tangential migration
+      bool withMovement = false;   // run tangential migration
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -140,7 +141,7 @@ using namespace std;
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        if (concentration > 1.43 && random->Uniform(0, 1) < 0.01) {
+        if (concentration > param->my_parameter_ && random->Uniform(0, 1) < 0.01) {
           cell->RemoveFromSimulation();
         }
 

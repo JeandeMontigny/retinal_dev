@@ -17,7 +17,8 @@ using namespace std;
     for (int i = 0; i < num_cells; i++) {
       double x = random->Uniform(min + 50, max - 50);
       double y = random->Uniform(min + 50, max - 50);
-      double z = random->Uniform(min + 20, 40);
+      // RGCL thickness before cell death ~24
+      double z = random->Uniform(min + 20, 35);
       std::array<double, 3> position = {x, y, z};
 
       auto&& cell = rm->template New<MyCell>(position);
