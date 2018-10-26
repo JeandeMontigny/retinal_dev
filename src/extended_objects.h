@@ -7,35 +7,6 @@
 namespace bdm {
 using namespace std;
 
-  // Define my custom cell Progenitor extending NeuronSoma
-  // BDM_SIM_OBJECT(Progenitor, experimental::neuroscience::NeuronSoma) {
-  //   BDM_SIM_OBJECT_HEADER(ProgenitorExt, 1, internal_clock_);
-  //
-  //  public:
-  //   ProgenitorExt() {}
-  //
-  //   ProgenitorExt(const array<double, 3>& position) : Base(position) {}
-  //
-  //   /// Default event constructor
-  //   template <typename TEvent, typename TOther>
-  //   ProgenitorExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
-  //   }
-  //
-  //   /// Default event handler (exising biology module won't be modified on
-  //   /// any event)
-  //   template <typename TEvent, typename... TOthers>
-  //   void EventHandler(const TEvent& event, TOthers*... others) {
-  //     Base::EventHandler(event, others...);
-  //   }
-  //
-  //   void SetInternalClock(int t) { internal_clock_[kIdx] = t; }
-  //   int GetInternalClock() const { return internal_clock_[kIdx]; }
-  //
-  //  private:
-  //   vec<int> internal_clock_;
-  // };
-
-
   // Define my custom cell MyCell extending NeuronSoma
   BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
     BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_,
@@ -109,12 +80,6 @@ using namespace std;
       TOther* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
       its_soma_[kIdx] = other->GetSoPtr();
     }
-
-    // MyNeuriteExt(const experimental::neuroscience::SplitNeuriteElementEvent& event,
-    //   TNeurite* proximal) {
-    //     //TODO: delete BM of the mother
-    //     // bdm::experimental::neuroscience::SplitNeuriteElementEvent::kEventId
-    //   }
 
     /// Default event handler
     template <typename TEvent, typename... TOthers>
