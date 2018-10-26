@@ -66,14 +66,6 @@ struct Progenitor_behaviour_BM : public BaseBiologyModule {
       }
     }
 
-    if (migrated_back_ && !amacrine_generated_) {
-      auto&& daughterAmacrine = cell->Divide();
-      //TODO: create Amacrine subtype for lamination behaviour
-      daughterAmacrine->SetCellType(-20);
-      daughterAmacrine->AddBiologyModule(Amacrine_axial_migration_BM());
-      amacrine_generated_ = true;
-    }
-
     if (migrated_back_ && !horizontal_generated_ && cell->GetDiameter() > 6.5) {
       auto&& daughterHorizontal = cell->Divide();
       //TODO: create and add BM
@@ -81,12 +73,24 @@ struct Progenitor_behaviour_BM : public BaseBiologyModule {
       horizontal_generated_ = true;
     }
 
-    if (migrated_back_ && !cone_generated_ && cell->GetDiameter() > 6.5) {
+    if (migrated_back_ && horizontal_generated_
+        && !cone_generated_ && cell->GetDiameter() > 6.5) {
       auto&& daughterCone = cell->Divide();
       //TODO: create and add BM
       daughterCone->SetCellType(-40);
       cone_generated_ = true;
     }
+
+    if (migrated_back_ && cone_generated_
+        && cell->GetDiameter() > 6.5 && !amacrine_generated_) {
+      auto&& daughterAmacrine = cell->Divide();
+      //TODO: create Amacrine subtype for lamination behaviour
+      daughterAmacrine->SetCellType(-20);
+      daughterAmacrine->AddBiologyModule(Amacrine_axial_migration_BM());
+      amacrine_generated_ = true;
+    }
+
+    //TODO: create other cells: rods -> bipolar -> Muller cells
 
   }  // end Run()
 
