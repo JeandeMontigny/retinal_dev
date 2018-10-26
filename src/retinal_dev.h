@@ -44,7 +44,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 1800; // 1700 steps needed by mosaics mechanisms to reach equilibrium
+  int maxStep = 3000;
   // Create an artificial bounds for the simulation space
   int cubeDim = 250;
   int num_cells = 1100;
@@ -55,7 +55,7 @@ inline int Simulate(int argc, const char** argv) {
   // if you want to write file for RI and cell position
   bool writeRI = true;
   bool writePositionExport = false;
-  bool writeSWC = false;
+  bool writeSWC = true;
   bool writeMigrationDistance = true;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
@@ -136,10 +136,10 @@ inline int Simulate(int argc, const char** argv) {
   }
 
   // 4. Run simulation for maxStep timesteps
-  for (int i = 0; i <= maxStep; i++) {
-    scheduler->Simulate(1);
+  for (int i = 0; i <= maxStep/10; i++) {
+    scheduler->Simulate(10);
 
-    if (i % 10 == 0) {  // write RI in file
+    if (i % 1 == 0) {  // write RI in file
       double RIon = getRI(0);
       double RIoff = getRI(1);
       double RIonOff = getRI(2);
@@ -148,7 +148,7 @@ inline int Simulate(int argc, const char** argv) {
       }
 
       // print
-      if (i % 100 == 0) {
+      if (i % 10 == 0) {
         // get cell list size
         rm = simulation.GetResourceManager();
         auto my_cells = rm->template Get<MyCell>();
@@ -171,7 +171,7 @@ inline int Simulate(int argc, const char** argv) {
             numberOfCells2++;
           }
         }
-        cout << "-- step " << i << " out of " << maxStep << " --\n"
+        cout << "-- step " << i*10 << " out of " << maxStep << " --\n"
              << numberOfCells << " cells in simulation: "
              << (1 - ((double)numberOfCells / num_cells)) * 100
              << "% of cell death\n"
@@ -189,9 +189,9 @@ inline int Simulate(int argc, const char** argv) {
       }  // end every 100 simu steps
     }    // end every 10 simu steps
 
-    if (writePositionExport && i % outputFrequence == 0) {
+    if (writePositionExport && i*10 % outputFrequence == 0) {
       // export cell position
-      position_exporteur(i);
+      position_exporteur(i*10);
     }
 
   }  // end for Simulate
