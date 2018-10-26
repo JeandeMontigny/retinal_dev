@@ -70,7 +70,7 @@ inline int Simulate(int argc, const char** argv) {
   bool writePositionExport = false;
   bool writeSWC = false;
   bool writeMigrationDistance = false;
-  // create cell position files every outputFrequence steps
+  // terminal print and create cell position files every outputFrequence steps
   int outputFrequence = 100;
 
   auto set_param = [&](auto* param) {
@@ -84,7 +84,6 @@ inline int Simulate(int argc, const char** argv) {
   };
 
   Simulation<> simulation(argc, argv, set_param);
-  auto* rm = simulation.GetResourceManager();
   auto* random = simulation.GetRandom();
   auto* scheduler = simulation.GetScheduler();
   auto* param = simulation.GetParam();
@@ -138,7 +137,7 @@ inline int Simulate(int argc, const char** argv) {
   // average peak distance for OFF cells: 40.405 with std of 8.39;
   ModelInitializer::InitializeSubstance(4, "off_substance_RGC_guide",
                                         GaussianBand(69, 8, Axis::kZAxis));
-  cout << "substances initialised" << endl;
+  cout << "substances created" << endl;
 
   // prepare export
   ofstream outputFile;
@@ -159,59 +158,35 @@ inline int Simulate(int argc, const char** argv) {
   }
 
   // 4. Run simulation for maxStep timesteps
-  for (int i = 0; i <= maxStep; i++) {
-    scheduler->Simulate(1);
+  int stepNb = 0;
+  if (writeRI) {
+    maxStep = (int)maxStep / 10;
+    stepNb = 10;
+  }
+  else {
+    maxStep = (int)maxStep / outputFrequence;
+    stepNb = outputFrequence;
+  }
 
-    if (i % 10 == 0) {  // write RI in file
+  for (int i = 0; i <= maxStep; i++) {
+    // simulate for stepNb steps
+    scheduler->Simulate(stepNb);
+
+    if (writeRI) {
       double RIon = getRI(0);
       double RIoff = getRI(1);
       double RIonOff = getRI(2);
-      if (writeRI) {
-        outputFile << RIon << " " << RIoff << " " << RIonOff << "\n";
+      outputFile << RIon << " " << RIoff << " " << RIonOff << "\n";
+
+      if (i % 10 == 0) {
+        PrintTerminalOutput(i*stepNb, maxStep*10, num_cells);
       }
+    } // end if writeRI
+    else {
+      PrintTerminalOutput(i*stepNb, maxStep*outputFrequence, num_cells);
+    }
 
-      // print
-      if (i % 100 == 0) {
-        // get cell list size
-        rm = simulation.GetResourceManager();
-        auto my_cells = rm->template Get<MyCell>();
-        int numberOfCells = my_cells->size();
-        // TODO: vector for unknow number of cell type
-        int numberOfCellsm1 = 0;
-        int numberOfCells0 = 0;
-        int numberOfCells1 = 0;
-        int numberOfCells2 = 0;
-        int numberOfDendrites = 0;
-
-        // for each cell in simulation
-        for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-          numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
-          auto thisCellType = (*my_cells)[cellNum].GetCellType();
-          if (thisCellType == -1) { numberOfCellsm1++; }
-          else if (thisCellType == 0) { numberOfCells0++; }
-          else if (thisCellType == 1) { numberOfCells1++; }
-          else if (thisCellType == 2) { numberOfCells2++; }
-        }
-        int nbOfRGC = numberOfCellsm1+numberOfCells0+numberOfCells1+numberOfCells2;
-        int nbOfDiffRGC = numberOfCells0+numberOfCells1+numberOfCells2;
-        cout << "-- step " << i << " out of " << maxStep << " --\n"
-             << numberOfCells << " cells in simulation, "
-             << nbOfRGC << " are RGC ("
-             << (1 - ((double)nbOfRGC / num_cells)) * 100
-             << "% of cell death)\n"
-             << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
-             << " cells are type 1 (off) ; " << numberOfCells2
-             << " cells are type 2 (on-off) ; "
-             << (double)(nbOfDiffRGC) / nbOfRGC * 100  << "% got type\n"
-             << numberOfDendrites << " apical dendrites in simulation: "
-             << (double)numberOfDendrites / nbOfRGC << " dendrites per cell\n"
-             << "RI on: " << RIon << " ; RI off: " << RIoff
-             << " ; RI on-off: " << RIonOff
-             << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;
-      }  // end every 100 simu steps
-    }    // end every 10 simu steps
-
-    if (writePositionExport && i % outputFrequence == 0) {
+    if (writePositionExport && i*stepNb % outputFrequence == 0) {
       // export cell position
       position_exporteur(i);
     }
