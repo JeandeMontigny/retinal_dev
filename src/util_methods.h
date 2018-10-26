@@ -299,6 +299,51 @@ static void ProgenitorsCreator(double min, double max, int num_cells) {
     std::cout << "migration distance export done" << std::endl;
   } // end exportMigrationDist
 
+  // print terminal output during simulation
+  template <typename TSimulation = Simulation<>>
+  inline void PrintTerminalOutput(int i, int maxStep, int num_cells) {
+    auto* sim = TSimulation::GetActive();
+    auto* rm = sim->GetResourceManager();
+    auto my_cells = rm->template Get<MyCell>();
+    // get cell list size
+    int numberOfCells = my_cells->size();
+    // TODO: vector for unknow number of cell type
+    double RIon = getRI(0);
+    double RIoff = getRI(1);
+    double RIonOff = getRI(2);
+    int numberOfCellsm1 = 0;
+    int numberOfCells0 = 0;
+    int numberOfCells1 = 0;
+    int numberOfCells2 = 0;
+    int numberOfDendrites = 0;
+
+    // for each cell in simulation
+    for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
+      numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
+      auto thisCellType = (*my_cells)[cellNum].GetCellType();
+      if (thisCellType == -1) { numberOfCellsm1++; }
+      else if (thisCellType == 0) { numberOfCells0++; }
+      else if (thisCellType == 1) { numberOfCells1++; }
+      else if (thisCellType == 2) { numberOfCells2++; }
+    }
+    int nbOfRGC = numberOfCellsm1+numberOfCells0+numberOfCells1+numberOfCells2;
+    int nbOfDiffRGC = numberOfCells0+numberOfCells1+numberOfCells2;
+    cout << "-- step " << i << " out of " << maxStep << " --\n"
+         << numberOfCells << " cells in simulation, "
+         << nbOfRGC << " are RGC ("
+         << (1 - ((double)nbOfRGC / num_cells)) * 100
+         << "% of cell death)\n"
+         << numberOfCells0 << " cells are type 0 (on) ; " << numberOfCells1
+         << " cells are type 1 (off) ; " << numberOfCells2
+         << " cells are type 2 (on-off) ; "
+         << (double)(nbOfDiffRGC) / nbOfRGC * 100  << "% got type\n"
+         << numberOfDendrites << " apical dendrites in simulation: "
+         << (double)numberOfDendrites / nbOfRGC << " dendrites per cell\n"
+         << "RI on: " << RIon << " ; RI off: " << RIoff
+         << " ; RI on-off: " << RIonOff
+         << " ; mean: " << (RIon + RIoff + RIonOff) / 3 << endl;
+  }
+
 } // end namespace bdm
 
 #endif
