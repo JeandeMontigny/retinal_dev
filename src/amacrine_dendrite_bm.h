@@ -8,7 +8,9 @@ using namespace std;
 
 // Define dendrites behavior for Amacrine dendritic growth
 struct Amacrine_dendrite_growth_BM : public BaseBiologyModule {
-  Amacrine_dendrite_growth_BM() : BaseBiologyModule(gAllEventIds) {}
+  Amacrine_dendrite_growth_BM() : BaseBiologyModule({
+    experimental::neuroscience::NeuriteBifurcationEvent::kEventId
+  }) {}
 
   /// Default event constructor
   template <typename TEvent, typename TBm>
