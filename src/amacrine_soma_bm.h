@@ -57,6 +57,7 @@ struct Amacrine_axial_migration_BM: public BaseBiologyModule {
 
       if (!init_) {
         auto* rm = sim->GetResourceManager();
+        dg_substanceGuide_ = rm->GetDiffusionGrid("progenitors_guide");
         dg_0_ = rm->GetDiffusionGrid("on_diffusion");
         dg_1_ = rm->GetDiffusionGrid("off_diffusion");
         dg_2_ = rm->GetDiffusionGrid("on_off_diffusion");
@@ -64,35 +65,26 @@ struct Amacrine_axial_migration_BM: public BaseBiologyModule {
       }
 
       auto& position = cell->GetPosition();
-      double concentration = dg_0_->GetConcentration(position)
-        + dg_1_->GetConcentration(position) + dg_2_->GetConcentration(position);
+      double concentration =
+        std::max(dg_0_->GetConcentration(position),
+        std::max(dg_1_->GetConcentration(position),
+        dg_2_->GetConcentration(position)));
 
-      array<double, 3> gradient_0_;
-      array<double, 3> gradient_1_;
-      array<double, 3> gradient_2_;
-      dg_0_->GetGradient(position, &gradient_0_);
-      dg_1_->GetGradient(position, &gradient_1_);
-      dg_2_->GetGradient(position, &gradient_2_);
-      double zDirection = gradient_0_[2] + gradient_1_[2] + gradient_2_[2];
-
-      if (zDirection < 0) {
-        int multiple = 0;
-        double temps = zDirection;
-        while (temps > -0.1) {
-          temps = temps * 10;
-          multiple ++;
-        }
-        zDirection = zDirection * pow(10, multiple);
-      }
+      array<double, 3> gradient_;
+      dg_substanceGuide_->GetGradient(position, &gradient_);
 
       if (cell->GetDiameter() < 8 && random->Uniform(0, 1) < 0.01) {
         cell->ChangeVolume(2000);
       }
 
-      // migrate to INL ~ 350
-      if (concentration < 8e-3) {
-        cell->UpdatePosition({random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), zDirection});
+      // migrate to INL ~ 347
+      if (concentration < 1e-2) {
+        cell->UpdatePosition(
+          {random->Uniform(-0.1, 0.1),
+            random->Uniform(-0.1, 0.1),
+            gradient_[2]});
       }
+      //TODO: create displaced AC, with much higher concentration threshold
       else {
         //TODO: remove that BM
         migrated_ = true;
@@ -108,6 +100,7 @@ struct Amacrine_axial_migration_BM: public BaseBiologyModule {
 private:
   bool init_ = false;
   bool migrated_ = false;
+  DiffusionGrid* dg_substanceGuide_ = nullptr;
   DiffusionGrid* dg_0_ = nullptr;
   DiffusionGrid* dg_1_ = nullptr;
   DiffusionGrid* dg_2_ = nullptr;
