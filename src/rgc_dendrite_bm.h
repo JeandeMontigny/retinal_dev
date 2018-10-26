@@ -8,7 +8,9 @@ using namespace std;
 
   // Define dendrites behavior for RGC dendritic growth
   struct RGC_dendrite_growth_BM : public BaseBiologyModule {
-    RGC_dendrite_growth_BM() : BaseBiologyModule(gAllEventIds) {}
+    RGC_dendrite_growth_BM() : BaseBiologyModule({
+      experimental::neuroscience::NeuriteBifurcationEvent::kEventId
+    }) {}
 
     /// Default event constructor
     template <typename TEvent, typename TBm>
