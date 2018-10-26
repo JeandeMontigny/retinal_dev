@@ -134,7 +134,7 @@ using namespace std;
 
 
   template <typename T>
-  inline string swc_neurites(const T ne, int labelParent,
+  inline string swc_neurites(T ne, int labelParent,
                              array<double, 3> somaPosition) {
     array<double, 3> nePosition = ne->GetPosition();
     nePosition[0] = nePosition[0] - somaPosition[0];
@@ -142,9 +142,9 @@ using namespace std;
     nePosition[2] = nePosition[2] - somaPosition[2];
     string temps;
 
-    ne->GetNeuronSomaOfNeurite()->IncreaseLabel();
+    ne->GetMySoma()->IncreaseLabel();
     // set explicitly the value of GetLabel() other wise it is not properly set
-    int currentLabel = ne->GetNeuronSomaOfNeurite()->GetLabel();
+    int currentLabel = ne->GetMySoma()->GetLabel();
 
     // if branching point
     if (ne->GetDaughterRight() != nullptr) {
@@ -157,11 +157,11 @@ using namespace std;
                  " ", labelParent,
                  swc_neurites(ne->GetDaughterRight(), currentLabel, somaPosition))
               .c_str();
-      ne->GetNeuronSomaOfNeurite()->IncreaseLabel();
+      ne->GetMySoma()->IncreaseLabel();
     }
     // if is straigh dendrite
     // need to update currentLabel
-    currentLabel = ne->GetNeuronSomaOfNeurite()->GetLabel();
+    currentLabel = ne->GetMySoma()->GetLabel();
     if (ne->GetDaughterLeft() != nullptr) {
       temps =
           Concat(temps, "\n", currentLabel, " 3 ", nePosition[0], " ",
