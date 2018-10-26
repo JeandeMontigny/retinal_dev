@@ -81,12 +81,6 @@ using namespace std;
       its_soma_[kIdx] = other->GetSoPtr();
     }
 
-    // MyNeuriteExt(const experimental::neuroscience::SplitNeuriteElementEvent& event,
-    //   TNeurite* proximal) {
-    //     //TODO: delete BM of the mother
-    //     // bdm::experimental::neuroscience::SplitNeuriteElementEvent::kEventId
-    //   }
-
     /// Default event handler
     template <typename TEvent, typename... TOthers>
     void EventHandler(const TEvent& event, TOthers*... others) {
