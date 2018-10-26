@@ -47,7 +47,7 @@ inline int Simulate(int argc, const char** argv) {
   ofstream param_outputFile;
   param_outputFile.open("param_RI_study.txt");
 
-  double startParameterStudy = 1.44;
+  double startParameterStudy = 1.66;
   double maxParameterStudy = 1.7;
   double ParamStep = 0.01;
   int numberOfIteration = 5;
@@ -59,9 +59,6 @@ inline int Simulate(int argc, const char** argv) {
          << maxParameterStudy << " (step of " << ParamStep << ")" << endl;
 
     for (int iteration = 0; iteration < numberOfIteration; iteration++) {
-
-      cout << "iteration " << iteration+1 << " out of "
-           << numberOfIteration << endl;
 
       // number of simulation steps
       int maxStep = 1800;
@@ -89,6 +86,9 @@ inline int Simulate(int argc, const char** argv) {
     //  mySeed = 9784;
       random->SetSeed(mySeed);
 
+      cout << "iteration " << iteration+1 << " out of "
+           << numberOfIteration << endl;
+
       // min position, max position, number of cells , cell type
       CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 0); //num_cells/3
       CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 1);
@@ -104,7 +104,7 @@ inline int Simulate(int argc, const char** argv) {
                                         param->max_bound_ / 2);
 
       // 4. Run simulation for maxStep timesteps
-        scheduler->Simulate(maxStep);
+      scheduler->Simulate(maxStep);
 
       auto my_cells = rm->template Get<MyCell>();
       int numberOfCells = my_cells->size();
@@ -133,6 +133,10 @@ inline int Simulate(int argc, const char** argv) {
 
       cout << "  average ri: " << meanRi << " with std: " << stdRi << " ; "
            << "cell death: " << cellDeath << endl;
+
+      cout << "  " << parameter << " " << ri0 << " " << ri1 << " "
+           << ri2 << " " << cellDensity << " " << cellDeath << " "
+           << (double)tempsMigrationDist/numberOfCells << endl;
 
       param_outputFile << parameter << " " << ri0 << " " << ri1 << " "
                        << ri2 << " " << cellDensity << " "
