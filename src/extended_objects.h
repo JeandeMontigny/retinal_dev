@@ -9,7 +9,7 @@ using namespace std;
 
   // Define my custom cell MyCell extending NeuronSoma
   BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
-    BDM_SIM_OBJECT_HEADER(MyCellExt, 1, cell_type_, internal_clock_,
+    BDM_SIM_OBJECT_HEADER(MyCell, experimental::neuroscience::NeuronSoma, 1, cell_type_, internal_clock_,
       labelSWC_, previous_position_, distance_travelled_);
 
    public:
@@ -58,7 +58,7 @@ using namespace std;
 
   // Define my custom neurite MyNeurite, which extends NeuriteElement
   BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
-    BDM_SIM_OBJECT_HEADER(MyNeuriteExt, 1, has_to_retract_, beyond_threshold_,
+    BDM_SIM_OBJECT_HEADER(MyNeurite, experimental::neuroscience::NeuriteElement, 1, has_to_retract_, beyond_threshold_,
                           sleep_mode_, diam_before_retract_, subtype_, its_soma_);
 
    public:
