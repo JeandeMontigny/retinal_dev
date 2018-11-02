@@ -25,8 +25,6 @@ using namespace std;
       cell.SetCellType(cellType);
       cell.SetInternalClock(0);
       cell.SetPreviousPosition(position);
-      cell.AddBiologyModule(Substance_secretion_BM());
-      cell.AddBiologyModule(RGC_mosaic_BM());
       cell.AddBiologyModule(Neurite_creation_BM());
     }
 
