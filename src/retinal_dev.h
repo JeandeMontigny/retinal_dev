@@ -44,13 +44,18 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  ofstream param_outputFile;
-  param_outputFile.open("param_RI_study.txt");
-
-  double startParameterStudy = 1.66;
-  double maxParameterStudy = 1.7;
-  double ParamStep = 0.01;
+  double startParameterStudy = 1.3;
+  double maxParameterStudy = 2.5;
+  double ParamStep = 0.05;
   int numberOfIteration = 5;
+
+  // check if output file doesn't exists
+  if (access("param_RI_study.txt", F_OK ) == -1) {
+    // create output file and return true if failed
+    if (system("touch ./param_RI_study.txt")) {
+      std::cout << "could not create output file" << std::endl;
+    }
+  }
 
   for (double parameter = startParameterStudy;
        parameter < maxParameterStudy; parameter += ParamStep) {
@@ -138,18 +143,18 @@ inline int Simulate(int argc, const char** argv) {
            << ri2 << " " << cellDensity << " " << cellDeath << " "
            << (double)tempsMigrationDist/numberOfCells << endl;
 
+      ofstream param_outputFile;
+      param_outputFile.open("param_RI_study.txt", std::ios::app);
+
       param_outputFile << parameter << " " << ri0 << " " << ri1 << " "
                        << ri2 << " " << cellDensity << " "
                        << cellDeath << " "
                        << (double)tempsMigrationDist/numberOfCells
                        << "\n";
 
-      // delete simulation;
-
+      param_outputFile.close();
   } // end for iteration
 } // end for parameter
-
-  param_outputFile.close();
 
   return 0;
 
