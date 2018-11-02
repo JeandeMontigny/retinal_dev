@@ -47,7 +47,7 @@ inline int Simulate(int argc, const char** argv) {
   int maxStep = 200;
   // Create an artificial bounds for the simulation space
   int cubeDim = 1000; // 500
-  int num_cells = 176000; // 4400
+  int num_cells = 17600; // 4400
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
