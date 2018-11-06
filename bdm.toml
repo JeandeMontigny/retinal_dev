@@ -6,17 +6,13 @@ leaking_edges = true
 calculate_gradients = true
 
 [visualization]
-export = false
+export = true
 live = false
 export_interval = 2
 
     [[visualize_sim_object]]
     name = "MyCell"
     additional_data_members = [ "cell_type_" ]
-
-    [[visualize_sim_object]]
-    name = "MyNeurite"
-    additional_data_members = [ "subtype_" ]
 
     # [[visualize_diffusion]]
     # name = "on_diffusion"

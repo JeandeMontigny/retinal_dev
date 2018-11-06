@@ -7,7 +7,6 @@
 
 #include "extended_objects.h"
 #include "rgc_soma_bm.h"
-#include "rgc_dendrite_bm.h"
 #include "util_methods.h"
 
 namespace bdm {
@@ -25,18 +24,13 @@ enum Substances {
 BDM_CTPARAM(experimental::neuroscience) {
   BDM_CTPARAM_HEADER(experimental::neuroscience);
 
-  using SimObjectTypes = CTList<MyCell, MyNeurite>;
+  using SimObjectTypes = CTList<MyCell>;
   using NeuronSoma = MyCell;
-  using NeuriteElement = MyNeurite;
 
   BDM_CTPARAM_FOR(bdm, MyCell) {
-    using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM, Neurite_creation_BM>;
+    using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM>;
   };
 
-  BDM_CTPARAM_FOR(bdm, MyNeurite) {
-    using BiologyModules =
-        CTList<RGC_dendrite_growth_BM>;
-  };
 };
 
 
@@ -44,8 +38,8 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  double startParameterStudy = 1.3;
-  double maxParameterStudy = 2.5;
+  double startParameterStudy = 2;
+  double maxParameterStudy = 3;
   double ParamStep = 0.05;
   int numberOfIteration = 5;
 
@@ -95,7 +89,7 @@ inline int Simulate(int argc, const char** argv) {
            << numberOfIteration << endl;
 
       // min position, max position, number of cells , cell type
-      CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 0); //num_cells/3
+      CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 0);
       CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 1);
       CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 2);
       CellCreator(param->min_bound_, param->max_bound_, 0, -1);
