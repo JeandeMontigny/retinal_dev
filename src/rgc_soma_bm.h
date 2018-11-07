@@ -209,18 +209,22 @@ using namespace std;
         dg_2_ = rm->GetDiffusionGrid("on_off_diffusion");
         init_ = true;
       }
-      auto& secretion_position = cell->GetPosition();
-      // if on cell, secrete on cells substance
-      if (cell->GetCellType() == 0) {
-        dg_0_->IncreaseConcentrationBy(secretion_position, 1);
-      }
-      // is off cell, secrete off cells substance
-      else if (cell->GetCellType() == 1) {
-        dg_1_->IncreaseConcentrationBy(secretion_position, 1);
-      }
-      // is on-off cell, secrete on-off cells substance
-      else if (cell->GetCellType() == 2) {
-        dg_2_->IncreaseConcentrationBy(secretion_position, 1);
+
+      if (cell->GetInternalClock()%2==0) {
+        auto& secretion_position = cell->GetPosition();
+
+        // if on cell, secrete on cells substance
+        if (cell->GetCellType() == 0) {
+          dg_0_->IncreaseConcentrationBy(secretion_position, 1);
+        }
+        // is off cell, secrete off cells substance
+        else if (cell->GetCellType() == 1) {
+          dg_1_->IncreaseConcentrationBy(secretion_position, 1);
+        }
+        // is on-off cell, secrete on-off cells substance
+        else if (cell->GetCellType() == 2) {
+          dg_2_->IncreaseConcentrationBy(secretion_position, 1);
+        }
       }
     }
 
