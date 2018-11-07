@@ -21,7 +21,7 @@ using namespace std;
     template <typename T, typename TSimulation = Simulation<>>
     void Run(T* soma) {
 
-      bool createDendrites = true;
+      bool createDendrites = false;
 
       if (createDendrites && soma->GetInternalClock() == 1600 && soma->GetCellType() != -1) {
         auto* sim = TSimulation::GetActive();
@@ -66,7 +66,7 @@ using namespace std;
       auto* random = sim->GetRandom();
 
       bool withCellDeath = true;  // run cell death mechanism
-      bool withMovement = true;   // run tangential migration
+      bool withMovement = false;   // run tangential migration
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -147,7 +147,7 @@ using namespace std;
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        if (concentration > 1.43 && random->Uniform(0, 1) < 0.01) {
+        if (concentration > 1.56 && random->Uniform(0, 1) < 0.1) {
           cell->RemoveFromSimulation();
         }
 
@@ -254,18 +254,22 @@ using namespace std;
         dg_2_ = rm->GetDiffusionGrid("on_off_diffusion");
         init_ = true;
       }
-      auto& secretion_position = cell->GetPosition();
-      // if on cell, secrete on cells substance
-      if (cell->GetCellType() == 0) {
-        dg_0_->IncreaseConcentrationBy(secretion_position, 1);
-      }
-      // is off cell, secrete off cells substance
-      else if (cell->GetCellType() == 1) {
-        dg_1_->IncreaseConcentrationBy(secretion_position, 1);
-      }
-      // is on-off cell, secrete on-off cells substance
-      else if (cell->GetCellType() == 2) {
-        dg_2_->IncreaseConcentrationBy(secretion_position, 1);
+
+      if (cell->GetInternalClock()%2 == 0){
+
+        auto& secretion_position = cell->GetPosition();
+        // if on cell, secrete on cells substance
+        if (cell->GetCellType() == 0) {
+          dg_0_->IncreaseConcentrationBy(secretion_position, 1);
+        }
+        // is off cell, secrete off cells substance
+        else if (cell->GetCellType() == 1) {
+          dg_1_->IncreaseConcentrationBy(secretion_position, 1);
+        }
+        // is on-off cell, secrete on-off cells substance
+        else if (cell->GetCellType() == 2) {
+          dg_2_->IncreaseConcentrationBy(secretion_position, 1);
+        }
       }
     }
 
