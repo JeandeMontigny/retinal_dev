@@ -38,9 +38,9 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  double startParameterStudy = 1.48;
+  double startParameterStudy = 1.5;
   double maxParameterStudy = 2;
-  double ParamStep = 0.02;
+  double ParamStep = 0.01;
   int numberOfIteration = 5;
 
   // check if output file doesn't exists

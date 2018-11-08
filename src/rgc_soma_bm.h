@@ -102,7 +102,7 @@ using namespace std;
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
-        if (concentration > param->my_parameter_ && random->Uniform(0, 1) < 0.05) {
+        if (concentration > param->my_parameter_ && random->Uniform(0, 1) < 0.1) {
           cell->RemoveFromSimulation();
         }
 
