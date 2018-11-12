@@ -1,6 +1,5 @@
 #ifndef RETINAL_DEV_
 #define RETINAL_DEV_
-
 #include "biodynamo.h"
 #include "neuroscience/neuroscience.h"
 #include "substance_initializers.h"
@@ -38,9 +37,9 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  double startParameterStudy = 1.5;
-  double maxParameterStudy = 2;
-  double ParamStep = 0.01;
+  double startParameterStudy = 20;
+  double maxParameterStudy = 100;
+  double ParamStep = 1;
   int numberOfIteration = 5;
 
   // check if output file doesn't exists
@@ -96,11 +95,11 @@ inline int Simulate(int argc, const char** argv) {
 
       // 3. Define substances
       ModelInitializer::DefineSubstance(0, "on_diffusion", 0.65, 0,
-                                        param->max_bound_ / 2);
+                                        param->max_bound_ / 10);
       ModelInitializer::DefineSubstance(1, "off_diffusion", 0.65, 0,
-                                        param->max_bound_ / 2);
+                                        param->max_bound_ / 10);
       ModelInitializer::DefineSubstance(2, "on_off_diffusion", 0.65, 0,
-                                        param->max_bound_ / 2);
+                                        param->max_bound_ / 10);
 
       // 4. Run simulation for maxStep timesteps
       scheduler->Simulate(maxStep);
