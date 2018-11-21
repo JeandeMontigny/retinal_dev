@@ -27,7 +27,9 @@ BDM_CTPARAM(experimental::neuroscience) {
   using NeuronSoma = MyCell;
 
   BDM_CTPARAM_FOR(bdm, MyCell) {
-    using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM>;
+    using BiologyModules = CTList<RGC_mosaic_BM,
+                            RGC_mosaic_death_BM,
+                            Substance_secretion_BM>;
   };
 
 };
@@ -37,7 +39,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  double startParameterStudy = 20;
+  double startParameterStudy = 31;
   double maxParameterStudy = 100;
   double ParamStep = 1;
   int numberOfIteration = 5;
@@ -88,19 +90,24 @@ inline int Simulate(int argc, const char** argv) {
            << numberOfIteration << endl;
 
       // min position, max position, number of cells , cell type
-      CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 0);
-      CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 1);
-      CellCreator(param->min_bound_, param->max_bound_, num_cells/3, 2);
-      CellCreator(param->min_bound_, param->max_bound_, 0, -1);
+      CellCreator(param->min_bound_, param->max_bound_, 0, 0);
+      CellCreator(param->min_bound_, param->max_bound_, 0, 1);
+      CellCreator(param->min_bound_, param->max_bound_, 0, 2);
+      CellCreator(param->min_bound_, param->max_bound_, num_cells, -1);
 
       // 3. Define substances
       ModelInitializer::DefineSubstance(0, "on_diffusion", 0.65, 0,
-                                        param->max_bound_ / 10);
+                                        param->max_bound_ / 2);
       ModelInitializer::DefineSubstance(1, "off_diffusion", 0.65, 0,
-                                        param->max_bound_ / 10);
+                                        param->max_bound_ / 2);
       ModelInitializer::DefineSubstance(2, "on_off_diffusion", 0.65, 0,
+                                        param->max_bound_ / 2);
+      ModelInitializer::DefineSubstance(3, "on_diffusion_d", 0.65, 0,
                                         param->max_bound_ / 10);
-
+      ModelInitializer::DefineSubstance(4, "off_diffusion_d", 0.65, 0,
+                                        param->max_bound_ / 10);
+      ModelInitializer::DefineSubstance(5, "on_off_diffusion_d", 0.65, 0,
+                                        param->max_bound_ / 10);
       // 4. Run simulation for maxStep timesteps
       scheduler->Simulate(maxStep);
 

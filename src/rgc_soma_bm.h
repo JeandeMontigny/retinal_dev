@@ -6,17 +6,16 @@
 namespace bdm {
 using namespace std;
 
-  // Define cell behavior for mosaic formation
+  // Define cell behavior for mosaic formation - CF and CM
   struct RGC_mosaic_BM : public BaseBiologyModule {
     RGC_mosaic_BM() : BaseBiologyModule(gNullEventId) {}
 
-    /// Default event constructor
+    // Default event constructor
     template <typename TEvent, typename TBm>
     RGC_mosaic_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
     }
 
-    /// Default event handler (exising biology module won't be modified on
-    /// any event)
+    // Default event handler
     template <typename TEvent, typename... TBms>
     void EventHandler(const TEvent&, TBms*...) {
     }
@@ -25,10 +24,9 @@ using namespace std;
     void Run(T* cell) {
       auto* sim = TSimulation::GetActive();
       auto* random = sim->GetRandom();
-      auto* param = sim->GetParam();
 
-      bool withCellDeath = true;  // run cell death mechanism
-      bool withMovement = false;   // run tangential migration
+      // run tangential migration
+      bool withMovement = false;
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -79,16 +77,6 @@ using namespace std;
         concentration = dg_2_->GetConcentration(position);
       }
 
-      if (cellClock < 1400) {
-        // add small random movements
-        cell->UpdatePosition(
-            {random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), 0});
-        // cell growth
-        if (cell->GetDiameter() < 14 && random->Uniform(0, 1) < 0.01) {
-          cell->ChangeVolume(5500);
-        }
-      }
-
       /* -- cell movement -- */
       if (withMovement && cellClock >= 200 && cellClock < 1600) {
         // cell movement based on homotype substance gradient
@@ -96,31 +84,6 @@ using namespace std;
           cell->UpdatePosition(diff_gradient);
         }
       }  // end tangential migration
-
-      /* -- cell death -- */
-      if (withCellDeath && cellClock >= 200 && cellClock < 1600) {
-        // add vertical migration as the multi layer colapse in just on layer
-        cell->UpdatePosition(gradient_z);
-        // cell death depending on homotype substance concentration
-        if (concentration > param->my_parameter_ && random->Uniform(0, 1) < 0.05) {
-          cell->RemoveFromSimulation();
-        }
-
-        // cell death for homotype cells in contact
-        // auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
-        //   if (neighbor->template IsSoType<MyCell>()) {
-        //     auto&& neighbor_rc = neighbor->template ReinterpretCast<MyCell>();
-        //     auto n_soptr = neighbor_rc->GetSoPtr();
-        //     if (cell->GetCellType() == n_soptr->GetCellType() &&
-        //         random->Uniform(0, 1) < 0.2) {
-        //       n_soptr->RemoveFromSimulation();
-        //     }
-        //   }
-        // };
-        // auto* grid = sim->GetGrid();
-        // grid->ForEachNeighborWithinRadius(
-        //     killNeighbor, *cell, cell->GetSoHandle(), cell->GetDiameter() * 1.5);
-      }  // end cell death
 
       /* -- cell fate -- */
       // cell type attribution depending on concentrations
@@ -164,13 +127,6 @@ using namespace std;
         }
       }  // end cell type = -1
 
-      /* -- internal clock -- */
-      // probability to increase internal clock
-      if (random->Uniform(0, 1) < 0.96) {
-        // update cell internal clock
-        cell->SetInternalClock(cell->GetInternalClock() + 1);
-      }  // end update cell internal clock
-
     }  // end Run()
 
    private:
@@ -180,6 +136,146 @@ using namespace std;
     DiffusionGrid* dg_2_ = nullptr;
     ClassDefNV(RGC_mosaic_BM, 1);
   };  // end biologyModule RGC_mosaic_BM
+
+
+  // Define cell behavior for mosaic formation - CD
+  struct RGC_mosaic_death_BM : public BaseBiologyModule {
+    RGC_mosaic_death_BM() : BaseBiologyModule(gNullEventId) {}
+
+    // Default event constructor
+    template <typename TEvent, typename TBm>
+    RGC_mosaic_death_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {
+    }
+
+    // Default event handler
+    template <typename TEvent, typename... TBms>
+    void EventHandler(const TEvent&, TBms*...) {
+    }
+
+    template <typename T, typename TSimulation = Simulation<>>
+    void Run(T* cell) {
+      auto* sim = TSimulation::GetActive();
+      auto* random = sim->GetRandom();
+      auto* param = sim->GetParam();
+
+      // if not initialised, initialise substance diffusions
+      if (!init_) {
+        auto* rm = sim->GetResourceManager();
+        dg_0_ = rm->GetDiffusionGrid("on_diffusion_d");
+        dg_1_ = rm->GetDiffusionGrid("off_diffusion_d");
+        dg_2_ = rm->GetDiffusionGrid("on_off_diffusion_d");
+        init_ = true;
+      }
+
+      auto& position = cell->GetPosition();
+      array<double, 3> gradient_0_;
+      array<double, 3> gradient_1_;
+      array<double, 3> gradient_2_;
+      array<double, 3> diff_gradient;
+      array<double, 3> gradient_z;
+      double concentration = 0;
+      int cellClock = cell->GetInternalClock();
+
+      // if cell is type 0, concentration and gradient are substance 0
+      if (cell->GetCellType() == 0) {
+        dg_0_->GetGradient(position, &gradient_0_);
+        gradient_z = Math::ScalarMult(0.2, gradient_0_);
+        gradient_z[0] = 0;
+        gradient_z[1] = 0;
+        diff_gradient = Math::ScalarMult(-0.1, gradient_0_);
+        diff_gradient[2] = 0;
+        concentration = dg_0_->GetConcentration(position);
+      }
+      // if cell is type 1, concentration and gradient are substance 1
+      if (cell->GetCellType() == 1) {
+        dg_1_->GetGradient(position, &gradient_1_);
+        gradient_z = Math::ScalarMult(0.2, gradient_1_);
+        gradient_z[0] = 0;
+        gradient_z[1] = 0;
+        diff_gradient = Math::ScalarMult(-0.1, gradient_1_);
+        diff_gradient[2] = 0;
+        concentration = dg_1_->GetConcentration(position);
+      }
+      // if cell is type 2, concentration and gradient are substance 2
+      if (cell->GetCellType() == 2) {
+        dg_2_->GetGradient(position, &gradient_2_);
+        gradient_z = Math::ScalarMult(0.2, gradient_2_);
+        gradient_z[0] = 0;
+        gradient_z[1] = 0;
+        diff_gradient = Math::ScalarMult(-0.1, gradient_2_);
+        diff_gradient[2] = 0;
+        concentration = dg_2_->GetConcentration(position);
+      }
+
+      /* -- cell death -- */
+      if (cellClock >= 200 && cellClock < 1600) {
+        // add vertical migration as the multi layer colapse in just on layer
+        cell->UpdatePosition(gradient_z);
+        // cell death depending on homotype substance concentration
+        if (concentration > param->my_parameter_ && random->Uniform(0, 1) < 0.05) {
+          cell->RemoveFromSimulation();
+        }
+
+        // cell death for homotype cells in contact
+        // auto killNeighbor = [&](auto&& neighbor, SoHandle neighbor_handle) {
+        //   if (neighbor->template IsSoType<MyCell>()) {
+        //     auto&& neighbor_rc = neighbor->template ReinterpretCast<MyCell>();
+        //     auto n_soptr = neighbor_rc->GetSoPtr();
+        //     if (cell->GetCellType() == n_soptr->GetCellType() &&
+        //         random->Uniform(0, 1) < 0.2) {
+        //       n_soptr->RemoveFromSimulation();
+        //     }
+        //   }
+        // };
+        // auto* grid = sim->GetGrid();
+        // grid->ForEachNeighborWithinRadius(
+        //     killNeighbor, *cell, cell->GetSoHandle(), cell->GetDiameter() * 1.5);
+      }  // end cell death
+
+      /* -- internal clock -- */
+      // probability to increase internal clock
+      if (random->Uniform(0, 1) < 0.96) {
+        // update cell internal clock
+        cell->SetInternalClock(cell->GetInternalClock() + 1);
+      }  // end update cell internal clock
+
+      /* -- small random movements -- */
+      if (cellClock < 1400) {
+        cell->UpdatePosition(
+            {random->Uniform(-0.1, 0.1), random->Uniform(-0.1, 0.1), 0});
+        // cell growth
+        if (cell->GetDiameter() < 14 && random->Uniform(0, 1) < 0.01) {
+          cell->ChangeVolume(5500);
+        }
+      } // end small random movements
+
+      /* -- substance secretion -- */
+      if (cellClock%2==0 && cellClock < 1600) {
+        auto& secretion_position = cell->GetPosition();
+
+        // if on cell, secrete on cells substance
+        if (cell->GetCellType() == 0) {
+          dg_0_->IncreaseConcentrationBy(secretion_position, 1);
+        }
+        // is off cell, secrete off cells substance
+        else if (cell->GetCellType() == 1) {
+          dg_1_->IncreaseConcentrationBy(secretion_position, 1);
+        }
+        // is on-off cell, secrete on-off cells substance
+        else if (cell->GetCellType() == 2) {
+          dg_2_->IncreaseConcentrationBy(secretion_position, 1);
+        }
+      }
+
+    }  // end Run()
+
+   private:
+    bool init_ = false;
+    DiffusionGrid* dg_0_ = nullptr;
+    DiffusionGrid* dg_1_ = nullptr;
+    DiffusionGrid* dg_2_ = nullptr;
+    ClassDefNV(RGC_mosaic_death_BM, 1);
+  };  // end biologyModule RGC_mosaic_death_BM
 
 
   // // Define cell behavior for substance secretion
