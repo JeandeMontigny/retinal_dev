@@ -6,9 +6,9 @@ leaking_edges = true
 calculate_gradients = true
 
 [visualization]
-export = false
+export = true
 live = false
-export_interval = 2
+export_interval = 100
 
     [[visualize_sim_object]]
     name = "MyCell"

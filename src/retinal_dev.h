@@ -14,10 +14,8 @@ namespace bdm {
 using namespace std;
 
 enum Substances {
-  on_diffusion,
-  off_diffusion,
-  on_substance_RGC_guide,
-  off_substance_RGC_guide
+  on_diffusion, off_diffusion, on_off_diffusion,
+  on_substance_RGC_guide, off_substance_RGC_guide
 };
 
 
@@ -30,12 +28,13 @@ BDM_CTPARAM(experimental::neuroscience) {
   using NeuriteElement = MyNeurite;
 
   BDM_CTPARAM_FOR(bdm, MyCell) {
-    using BiologyModules = CTList<RGC_mosaic_BM, Substance_secretion_BM, Neurite_creation_BM>;
+    using BiologyModules = CTList<RGC_mosaic_BM,
+                                  Substance_secretion_BM,
+                                  Neurite_creation_BM>;
   };
 
   BDM_CTPARAM_FOR(bdm, MyNeurite) {
-    using BiologyModules =
-        CTList<RGC_dendrite_growth_BM>;
+    using BiologyModules = CTList<RGC_dendrite_growth_BM>;
   };
 };
 
@@ -44,10 +43,10 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 3000;
+  int maxStep = 1000;
   // Create an artificial bounds for the simulation space
-  int cubeDim = 250;
-  int num_cells = 1100;
+  int cubeDim = 500;
+  int num_cells = 4400;
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
@@ -55,7 +54,7 @@ inline int Simulate(int argc, const char** argv) {
   // if you want to write file for RI and cell position
   bool writeRI = true;
   bool writePositionExport = false;
-  bool writeSWC = true;
+  bool writeSWC = false;
   bool writeMigrationDistance = true;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
@@ -83,19 +82,12 @@ inline int Simulate(int argc, const char** argv) {
 
   // min position, max position, number of cells , cell type
   CellCreator(param->min_bound_, param->max_bound_, 0, 0);
-  cout << "on cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, 0, 1);
-  cout << "off cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, 0, 2);
-  cout << "on-off cells created" << endl;
   CellCreator(param->min_bound_, param->max_bound_, num_cells, -1);
-  cout << "undifferentiated cells created" << endl;
+  cout << "cells created" << endl;
 
   // 3. Define substances
-  // Order: substance_name, diffusion_coefficient, decay_constant, resolution
-  // if diffusion_coefficient is low, diffusion distance is short
-  // if decay_constant is high, diffusion distance is short
-  // resolution is number of point in one domaine dimension
   ModelInitializer::DefineSubstance(0, "on_diffusion", 0.65, 0,
                                     param->max_bound_ / 2);
   ModelInitializer::DefineSubstance(1, "off_diffusion", 0.65, 0,
@@ -115,7 +107,7 @@ inline int Simulate(int argc, const char** argv) {
   // average peak distance for OFF cells: 40.405 with std of 8.39;
   ModelInitializer::InitializeSubstance(4, "off_substance_RGC_guide",
                                         GaussianBand(69, 8, Axis::kZAxis));
-  cout << "substances initialised" << endl;
+  cout << "substances created" << endl;
 
   // prepare export
   ofstream outputFile;
