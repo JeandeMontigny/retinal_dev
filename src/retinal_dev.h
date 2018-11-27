@@ -47,6 +47,9 @@ inline int Simulate(int argc, const char** argv) {
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400;
+  double diffusion_coef = 0.65;
+  double decay_const = 0.1;
+
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
@@ -88,11 +91,11 @@ inline int Simulate(int argc, const char** argv) {
   cout << "cells created" << endl;
 
   // 3. Define substances
-  ModelInitializer::DefineSubstance(0, "on_diffusion", 0.65, 0,
+  ModelInitializer::DefineSubstance(0, "on_diffusion", diffusion_coef, decay_const,
                                     param->max_bound_ / 2);
-  ModelInitializer::DefineSubstance(1, "off_diffusion", 0.65, 0,
+  ModelInitializer::DefineSubstance(1, "off_diffusion", diffusion_coef, decay_const,
                                     param->max_bound_ / 2);
-  ModelInitializer::DefineSubstance(2, "on_off_diffusion", 0.65, 0,
+  ModelInitializer::DefineSubstance(2, "on_off_diffusion", diffusion_coef, decay_const,
                                     param->max_bound_ / 2);
 
   // define substances for RGC dendrite attraction

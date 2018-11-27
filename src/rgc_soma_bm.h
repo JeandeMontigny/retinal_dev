@@ -23,7 +23,9 @@ using namespace std;
 
       bool createDendrites = false;
 
-      if (createDendrites && soma->GetInternalClock() == 1600 && soma->GetCellType() != -1) {
+      // soma->RemoveBiologyModule(RGC_mosaic_BM());
+
+      if (createDendrites && soma->GetInternalClock() == 1000 && soma->GetCellType() != -1) {
         auto* sim = TSimulation::GetActive();
         auto* random = sim->GetRandom();
         // dendrite per cell: average=4.5; std=1.2
@@ -66,9 +68,9 @@ using namespace std;
 
       // run tangential migration
       bool withMovement = true;
-      double movementThreshold = 1.4; // 1.4
+      double movementThreshold = 1.21;
       bool withDeath = true;
-      double deathThreshold = 1.55; // 1.55
+      double deathThreshold = 1.22;
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -119,8 +121,18 @@ using namespace std;
         concentration = dg_2_->GetConcentration(position);
       }
 
+      if (cellClock < 700) {
+        // // add small random movements
+        // cell->UpdatePosition(
+        //     {random->Uniform(-0.01, 0.01), random->Uniform(-0.01, 0.01), 0});
+        // cell growth
+        if (cell->GetDiameter() < 14 && random->Uniform(0, 1) < 0.02) {
+          cell->ChangeVolume(5500);
+        }
+      }
+
       /* -- cell movement -- */
-      if (withMovement && cellClock >= 400 && cellClock < 1600
+      if (withMovement && cellClock >= 100 && cellClock < 900
           && concentration >= movementThreshold) {
         // cell movement based on homotype substance gradient
           cell->UpdatePosition(diff_gradient);
@@ -134,7 +146,7 @@ using namespace std;
       }  // end tangential migration
 
       /* -- cell death -- */
-      if (withDeath && cellClock >= 200 && cellClock < 1600) {
+      if (withDeath && cellClock >= 100 && cellClock < 900) {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
@@ -230,7 +242,7 @@ using namespace std;
         dg_2_ = rm->GetDiffusionGrid("on_off_diffusion");
         init_ = true;
       }
-      
+
       if (cell->GetInternalClock()%2==0) {
         auto& secretion_position = cell->GetPosition();
         // if on cell, secrete on cells substance
