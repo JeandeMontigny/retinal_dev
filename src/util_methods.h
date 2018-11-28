@@ -15,8 +15,8 @@ using namespace std;
     container->reserve(num_cells);
 
     for (int i = 0; i < num_cells; i++) {
-      double x = random->Uniform(min + 50, max - 50);
-      double y = random->Uniform(min + 50, max - 50);
+      double x = random->Uniform(min + 100, max - 100);
+      double y = random->Uniform(min + 100, max - 100);
       // RGCL thickness before cell death ~24
       double z = random->Uniform(min + 20, 35);
       std::array<double, 3> position = {x, y, z};
@@ -28,8 +28,6 @@ using namespace std;
       cell.SetPreviousPosition(position);
       cell.AddBiologyModule(Substance_secretion_BM());
       cell.AddBiologyModule(RGC_mosaic_BM());
-      cell.AddBiologyModule(RGC_mosaic_death_BM());
-      // cell.AddBiologyModule(Neurite_creation_BM());
     }
 
     container->Commit();
