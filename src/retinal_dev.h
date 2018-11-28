@@ -48,7 +48,7 @@ inline int Simulate(int argc, const char** argv) {
   int cubeDim = 500;
   int num_cells = 4400;
   double diffusion_coef = 0.65;
-  double decay_const = 0.1;
+  double decay_const = 0;
 
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;

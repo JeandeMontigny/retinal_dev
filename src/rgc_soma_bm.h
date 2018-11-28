@@ -68,9 +68,9 @@ using namespace std;
 
       // run tangential migration
       bool withMovement = true;
-      double movementThreshold = 1.21;
+      double movementThreshold = 1.4;
       bool withDeath = true;
-      double deathThreshold = 1.22;
+      double deathThreshold = 1.54;
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -132,7 +132,7 @@ using namespace std;
       }
 
       /* -- cell movement -- */
-      if (withMovement && cellClock >= 100 && cellClock < 900
+      if (withMovement && cellClock >= 300 && cellClock < 900
           && concentration >= movementThreshold) {
         // cell movement based on homotype substance gradient
           cell->UpdatePosition(diff_gradient);
