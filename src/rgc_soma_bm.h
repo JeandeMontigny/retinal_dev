@@ -68,9 +68,9 @@ using namespace std;
 
       // run tangential migration
       bool withMovement = true;
-      double movementThreshold = 1.4;
+      double movementThreshold = 1.212;
       bool withDeath = true;
-      double deathThreshold = 1.54;
+      double deathThreshold = 1.216;
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -132,7 +132,7 @@ using namespace std;
       }
 
       /* -- cell movement -- */
-      if (withMovement && cellClock >= 300 && cellClock < 900
+      if (withMovement && cellClock >= 100 && cellClock < 900
           && concentration >= movementThreshold) {
         // cell movement based on homotype substance gradient
           cell->UpdatePosition(diff_gradient);
@@ -146,7 +146,7 @@ using namespace std;
       }  // end tangential migration
 
       /* -- cell death -- */
-      if (withDeath && cellClock >= 100 && cellClock < 900) {
+      if (withDeath && cellClock >= 100 && cellClock < 700) {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration
