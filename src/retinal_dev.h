@@ -37,13 +37,15 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  double startParameterStudyDeath = 1.21;
+  // ~ 1.22
+  double startParameterStudyDeath = 1.217;
   double maxParameterStudyDeath = 1.23;
-  double ParamStepDeath = 0.01;
+  double ParamStepDeath = 0.002;
 
-  double startParameterStudyMovement = 1.20;
+  // ~ 1.21
+  double startParameterStudyMovement = 1.2;
   double maxParameterStudyMovement = 1.22;
-  double ParamStepMovement = 0.01;
+  double ParamStepMovement = 0.002;
 
   int numberOfIteration = 5;
 
@@ -70,7 +72,7 @@ inline int Simulate(int argc, const char** argv) {
       for (int iteration = 0; iteration < numberOfIteration; iteration++) {
 
         // number of simulation steps
-        int maxStep = 1800;
+        int maxStep = 1000;
         // Create an artificial bounds for the simulation space
         int cubeDim = 500;
         int num_cells = 4400;
@@ -147,7 +149,7 @@ inline int Simulate(int argc, const char** argv) {
         cout << "  average ri: " << meanRi << " with std: " << stdRi << " ; "
              << "cell death: " << cellDeath << endl;
 
-        cout << movementThreshold << " " << movementThreshold << " "
+        cout << movementThreshold << " " << deathThreshold << " "
              << ri0 << " " << ri1 << " " << ri2 << " "
              << cellDensity << " " << cellDeath << " "
               << (double)tempsMigrationDist/numberOfCells << endl;
@@ -155,7 +157,7 @@ inline int Simulate(int argc, const char** argv) {
         ofstream param_outputFile;
         param_outputFile.open("param_RI_study.txt", std::ios::app);
 
-        param_outputFile << movementThreshold << " " << movementThreshold << " "
+        param_outputFile << movementThreshold << " " << deathThreshold << " "
                          << ri0 << " " << ri1 << " " << ri2 << " "
                          << cellDensity << " " << cellDeath << " "
                          << (double)tempsMigrationDist/numberOfCells
