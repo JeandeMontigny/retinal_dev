@@ -106,7 +106,7 @@ using namespace std;
       }  // end tangential migration
 
       /* -- cell death -- */
-      if (withDeath && cellClock >= 100 && cellClock < 900) {
+      if (withDeath && cellClock >= 100 && cellClock < 700) {
         // add vertical migration as the multi layer colapse in just on layer
         cell->UpdatePosition(gradient_z);
         // cell death depending on homotype substance concentration

@@ -37,14 +37,14 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  // ~ 1.22
-  double startParameterStudyDeath = 1.217;
-  double maxParameterStudyDeath = 1.23;
-  double ParamStepDeath = 0.002;
+  // good ~ 1.216
+  double startParameterStudyDeath = 1.214; // 1.214
+  double maxParameterStudyDeath = 1.222;
+  double ParamStepDeath = 0.001;
 
-  // ~ 1.21
-  double startParameterStudyMovement = 1.2;
-  double maxParameterStudyMovement = 1.22;
+  // good ~ 1.212
+  double startParameterStudyMovement = 1.207; // 1.206
+  double maxParameterStudyMovement = 1.220;
   double ParamStepMovement = 0.002;
 
   int numberOfIteration = 5;
@@ -58,11 +58,11 @@ inline int Simulate(int argc, const char** argv) {
   }
 
   for (double deathThreshold = startParameterStudyDeath;
-       deathThreshold < maxParameterStudyDeath;
-       deathThreshold += ParamStepMovement) {
+       deathThreshold <= maxParameterStudyDeath;
+       deathThreshold += ParamStepDeath) {
 
     for (double movementThreshold = startParameterStudyMovement;
-         movementThreshold < maxParameterStudyMovement;
+         movementThreshold <= maxParameterStudyMovement;
          movementThreshold += ParamStepMovement) {
 
            cout << "\nmodelling with parameters "
