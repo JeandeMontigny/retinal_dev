@@ -68,7 +68,7 @@ using namespace std;
 
       // run tangential migration
       bool withMovement = true;
-      double movementThreshold = 1.212;
+      double movementThreshold = 1.21;
       bool withDeath = true;
       double deathThreshold = 1.216;
 
@@ -137,12 +137,12 @@ using namespace std;
         // cell movement based on homotype substance gradient
           cell->UpdatePosition(diff_gradient);
           // update distance travelled by this cell
-          // array<double, 3> previousPosition = cell->GetPreviousPosition();
-          // array<double, 3> currentPosition = cell->GetPosition();
-          // cell->SetDistanceTravelled(cell->GetDistanceTravelled() +
-          //   (sqrt(pow(currentPosition[0] - previousPosition[0], 2) +
-          //        pow(currentPosition[1] - previousPosition[1], 2))));
-          // cell->SetPreviousPosition(cell->GetPosition());
+          array<double, 3> previousPosition = cell->GetPreviousPosition();
+          array<double, 3> currentPosition = cell->GetPosition();
+          cell->SetDistanceTravelled(cell->GetDistanceTravelled() +
+            (sqrt(pow(currentPosition[0] - previousPosition[0], 2) +
+                 pow(currentPosition[1] - previousPosition[1], 2))));
+          cell->SetPreviousPosition(cell->GetPosition());
       }  // end tangential migration
 
       /* -- cell death -- */
