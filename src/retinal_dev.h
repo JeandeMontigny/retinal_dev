@@ -43,7 +43,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 1000;
+  int maxStep = 2000;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400;
@@ -55,10 +55,10 @@ inline int Simulate(int argc, const char** argv) {
 
   // set write output param
   // if you want to write file for RI and cell position
-  bool writeRI = true;
+  bool writeRI = false;
   bool writePositionExport = false;
-  bool writeSWC = false;
-  bool writeMigrationDistance = true;
+  bool writeSWC = true;
+  bool writeMigrationDistance = false;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
 

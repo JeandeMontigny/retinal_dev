@@ -7,46 +7,6 @@
 namespace bdm {
 using namespace std;
 
-  // Define cell behavior for neurite creation
-  struct Neurite_creation_BM: public BaseBiologyModule {
-    Neurite_creation_BM() : BaseBiologyModule(gNullEventId) {}
-
-    /// Default event constructor
-    template <typename TEvent, typename TBm>
-    Neurite_creation_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {}
-
-    template <typename TEvent, typename... TBms>
-    void EventHandler(const TEvent&, TBms*...) {}
-
-    template <typename T, typename TSimulation = Simulation<>>
-    void Run(T* soma) {
-
-      bool createDendrites = false;
-
-      // soma->RemoveBiologyModule(RGC_mosaic_BM());
-
-      if (createDendrites && soma->GetInternalClock() == 1000 && soma->GetCellType() != -1) {
-        auto* sim = TSimulation::GetActive();
-        auto* random = sim->GetRandom();
-        // dendrite per cell: average=4.5; std=1.2
-        int thisSubType = soma->GetCellType()*100 + (int)random->Uniform(0, 20);
-        for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
-          auto&& ne = soma->ExtendNewNeurite({0, 0, 1});
-          ne->AddBiologyModule(RGC_dendrite_growth_BM());
-          ne->SetHasToRetract(false);
-          ne->SetSleepMode(false);
-          ne->SetBeyondThreshold(false);
-          ne->SetSubtype(thisSubType);
-          ne->SetMySoma(soma->GetSoPtr());
-        }
-      }
-    } // end run
-
-  private:
-    ClassDefNV(Neurite_creation_BM, 1);
-  }; // endNeurite_creation_BM
-
-
   // Define cell behavior for mosaic formation
   struct RGC_mosaic_BM : public BaseBiologyModule {
     RGC_mosaic_BM() : BaseBiologyModule(gNullEventId) {}
@@ -267,6 +227,47 @@ using namespace std;
     DiffusionGrid* dg_2_ = nullptr;
     ClassDefNV(Substance_secretion_BM, 1);
   }; // end biologyModule Substance_secretion_BM
+
+
+  // Define cell behavior for neurite creation
+  struct Neurite_creation_BM: public BaseBiologyModule {
+    Neurite_creation_BM() : BaseBiologyModule(gNullEventId) {}
+
+    /// Default event constructor
+    template <typename TEvent, typename TBm>
+    Neurite_creation_BM(const TEvent& event, TBm* other, uint64_t new_oid = 0) {}
+
+    template <typename TEvent, typename... TBms>
+    void EventHandler(const TEvent&, TBms*...) {}
+
+    template <typename T, typename TSimulation = Simulation<>>
+    void Run(T* soma) {
+
+      bool createDendrites = true;
+
+      if (createDendrites && soma->GetInternalClock() == 1000 && soma->GetCellType() != -1) {
+        auto* sim = TSimulation::GetActive();
+        auto* random = sim->GetRandom();
+        // dendrite per cell: average=4.5; std=1.2
+        int thisSubType = soma->GetCellType()*100 + (int)random->Uniform(0, 20);
+        for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
+          auto&& ne = soma->ExtendNewNeurite({0, 0, 1});
+          ne->AddBiologyModule(RGC_dendrite_growth_BM());
+          ne->SetHasToRetract(false);
+          ne->SetSleepMode(false);
+          ne->SetBeyondThreshold(false);
+          ne->SetSubtype(thisSubType);
+          ne->SetMySoma(soma->GetSoPtr());
+        }
+        // remove BM that are not needed anymore
+        // soma->RemoveBiologyModule(soma->template GetBiologyModules<RGC_mosaic_BM>()[0]);
+//        soma->RemoveBiologyModule(soma->template GetBiologyModules<Neurite_creation_BM>()[0]);
+      }
+    } // end run
+
+  private:
+    ClassDefNV(Neurite_creation_BM, 1);
+  }; // endNeurite_creation_BM
 
 } // end namespace bdm
 
