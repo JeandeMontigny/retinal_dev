@@ -97,13 +97,13 @@ using namespace std;
         // cell movement based on homotype substance gradient
           cell->UpdatePosition(diff_gradient);
           // update distance travelled by this cell
-          // array<double, 3> previousPosition = cell->GetPreviousPosition();
-          // array<double, 3> currentPosition = cell->GetPosition();
-          // cell->SetDistanceTravelled(cell->GetDistanceTravelled() +
-          //   (sqrt(pow(currentPosition[0] - previousPosition[0], 2) +
-          //        pow(currentPosition[1] - previousPosition[1], 2))));
-          // cell->SetPreviousPosition(cell->GetPosition());
-      }  // end tangential migration
+          array<double, 3> previousPosition = cell->GetPreviousPosition();
+          array<double, 3> currentPosition = cell->GetPosition();
+          cell->SetDistanceTravelled(cell->GetDistanceTravelled() +
+            (sqrt(pow(currentPosition[0] - previousPosition[0], 2) +
+                 pow(currentPosition[1] - previousPosition[1], 2))));
+          cell->SetPreviousPosition(cell->GetPosition());
+      } // end tangential migration
 
       /* -- cell death -- */
       if (withDeath && cellClock >= 100 && cellClock < 700) {
