@@ -49,7 +49,7 @@ inline int Simulate(int argc, const char** argv) {
   int numberOfIteration = 5;
 
   bool writePositionExport = true;
-  
+
   // check if output file doesn't exists
   if (access("param_RI_study.txt", F_OK ) == -1) {
     // create output file and return true if failed
@@ -90,8 +90,9 @@ inline int Simulate(int argc, const char** argv) {
           // neuroscience/param.h
           param->my_parameter_1_ = movementThreshold;
           param->my_parameter_2_ = deathThreshold;
-	  // set output directory name
-	  param->output_dir_ = "output/" + to_string(movementThreshold) + "_" + to_string(deathThreshold);
+      	  // set output directory name
+      	  param->output_dir_ = "output/" + to_string(movementThreshold) +
+            "_" + to_string(deathThreshold);
         };
 
         Simulation<> simulation(argc, argv, set_param);
@@ -101,7 +102,7 @@ inline int Simulate(int argc, const char** argv) {
         auto* param = simulation.GetParam();
 
         int mySeed = rand() % 10000;
-      //  mySeed = 9784;
+        //  mySeed = 9784;
         random->SetSeed(mySeed);
 
         cout << "iteration " << iteration+1 << " out of "
@@ -127,40 +128,34 @@ inline int Simulate(int argc, const char** argv) {
         auto my_cells = rm->template Get<MyCell>();
         int numberOfCells = my_cells->size();
 
-	// mean of migration distance
+	      // mean of migration distance
         int tempsMigrationDist = 0;
         vector<array<double, 3>> coordList;
         for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
           tempsMigrationDist += (*my_cells)[cellNum].GetDistanceTravelled();
         }
-	double aveMigrationDist = (double)tempsMigrationDist/numberOfCells;
+      	double aveMigrationDist = (double)tempsMigrationDist/numberOfCells;
 
-	// sdt of migration distance
-	double tempsStdDist = 0;
-	for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-	  double dist = (*my_cells)[cellNum].GetDistanceTravelled();
-	  double sqrDiffToMean =  pow(dist - aveMigrationDist, 2);
-	  tempsStdDist += sqrDiffToMean;
-	}
-	double meanOfDiffs = tempsStdDist/(double)numberOfCells;
-	double stdMigrationDist = sqrt(meanOfDiffs);
+      	// sdt of migration distance
+      	double tempsStdDist = 0;
+      	for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
+      	  double dist = (*my_cells)[cellNum].GetDistanceTravelled();
+      	  double sqrDiffToMean =  pow(dist - aveMigrationDist, 2);
+      	  tempsStdDist += sqrDiffToMean;
+      	}
+      	double meanOfDiffs = tempsStdDist/(double)numberOfCells;
+      	double stdMigrationDist = sqrt(meanOfDiffs);
 
-	// export position of every cells
-	if (writePositionExport) {
-	  position_exporteur(iteration);
-	}
-	
+      	// export position of every cells
+        if (writePositionExport) {
+      	  position_exporteur(iteration);
+      	}
+
         double ri0 = getRI(0);
         double ri1 = getRI(1);
         double ri2 = getRI(2);
-        // mean/std of ri
-        // double meanRi = (ri0+ri1+ri2)/3;
-        // double stdRi = sqrt((pow(ri0 - meanRi, 2) + pow(ri1 - meanRi, 2)
-        //                   + pow(ri2 - meanRi, 2)) / 3);
-        double cellDeath = (1 - ((double)numberOfCells / num_cells)) * 100;
 
-        // cout << "  average ri: " << meanRi << " with std: " << stdRi << " ; "
-        //      << "cell death: " << cellDeath << endl;
+        double cellDeath = (1 - ((double)numberOfCells / num_cells)) * 100;
 
         cout << "  " << movementThreshold << " " << deathThreshold << " "
              << ri0 << " " << ri1 << " " << ri2 << " "
