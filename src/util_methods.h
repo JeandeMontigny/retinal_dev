@@ -190,7 +190,7 @@ using namespace std;
          i++) {  // for each cell of same type in the simulation
       array<double, 3> cellPosition = coordList[i];
 
-      double shortestDist = 1e10;
+      vector<double> shortestDist;
       // for each other cell of same type in the simulation
       for (unsigned int j = 0; j < coordList.size(); j++) {
         array<double, 3> otherCellPosition = coordList[j];
@@ -200,12 +200,13 @@ using namespace std;
             sqrt(pow(cellPosition[0] - otherCellPosition[0], 2) +
                  pow(cellPosition[1] - otherCellPosition[1], 2));
         // if cell is closer and is not itself
-        if (tempsDistance < shortestDist && tempsDistance != 0) {
-          shortestDist = tempsDistance;  // updade closest neighbour distance
+        if (tempsDistance != 0) {
+          shortestDist.push_back(tempsDistance);
         }
       }
+      // save the shortest distance to neighbour
       shortestDistList.push_back(
-          shortestDist);  // save the shortest distance to neighbour
+        *min_element(shortestDist.begin(), shortestDist.end()));
     }
     // compute mean
     double temps_sum = 0;
