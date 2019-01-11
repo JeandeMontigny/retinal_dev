@@ -47,13 +47,13 @@ using namespace std;
     stringstream sstmOff;
     stringstream sstmOnOff;
     stringstream sstmAll;
-    sstmOn << Concat(param->output_dir_, "/cells_position/on_t") << i << "_seed"
+    sstmOn << Concat(param->output_dir_, "/on_iter") << i << "_seed"
            << seed << ".txt";
-    sstmOff << Concat(param->output_dir_, "/cells_position/off_t") << i << "_seed"
+    sstmOff << Concat(param->output_dir_, "/off_iter") << i << "_seed"
             << seed << ".txt";
-    sstmOnOff << Concat(param->output_dir_, "/cells_position/onOff_t") << i
+    sstmOnOff << Concat(param->output_dir_, "/onOff_iter") << i
               << "_seed" << seed << ".txt";
-    sstmAll << Concat(param->output_dir_, "/cells_position/all_t") << i << "_seed"
+    sstmAll << Concat(param->output_dir_, "/all_iter") << i << "_seed"
             << seed << ".txt";
 
     string fileNameOn = sstmOn.str();
@@ -261,12 +261,12 @@ using namespace std;
     migrationDist_outputFile.open(Concat(param->output_dir_, "/migration_distance.txt"));
     // for each cell in simulation
     for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-      array<double, 3> positionAtCreation = (*my_cells)[cellNum].GetPreviousPosition();
-      array<double, 3> currentPosition = (*my_cells)[cellNum].GetPosition();
-      double distance = sqrt(pow(currentPosition[0] - positionAtCreation[0], 2) +
-                             pow(currentPosition[1] - positionAtCreation[1], 2));
+      // array<double, 3> positionAtCreation = (*my_cells)[cellNum].GetPreviousPosition();
+      // array<double, 3> currentPosition = (*my_cells)[cellNum].GetPosition();
+      // double distance = sqrt(pow(currentPosition[0] - positionAtCreation[0], 2) +
+      //                        pow(currentPosition[1] - positionAtCreation[1], 2));
 
-      // double distance = (*my_cells)[cellNum].GetDistanceTravelled();
+      double distance = (*my_cells)[cellNum].GetDistanceTravelled();
 
       migrationDist_outputFile << distance << "\n";
     }

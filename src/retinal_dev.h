@@ -17,7 +17,6 @@ enum Substances {
   on_off_diffusion,
 };
 
-
 // define compile time parameter
 BDM_CTPARAM(experimental::neuroscience) {
   BDM_CTPARAM_HEADER(experimental::neuroscience);
@@ -39,16 +38,18 @@ inline int Simulate(int argc, const char** argv) {
 
   // good ~ 1.216
   double startParameterStudyDeath = 1.214; // 1.214
-  double maxParameterStudyDeath = 1.222;
-  double ParamStepDeath = 0.001;
+  double maxParameterStudyDeath = 1.222; // 1.222
+  double ParamStepDeath = 0.0002;
 
   // good ~ 1.212
-  double startParameterStudyMovement = 1.207; // 1.206
-  double maxParameterStudyMovement = 1.220;
-  double ParamStepMovement = 0.002;
+  double startParameterStudyMovement = 1.206; // 1.206
+  double maxParameterStudyMovement = 1.22; // 1.22
+  double ParamStepMovement = 0.001;
 
   int numberOfIteration = 5;
 
+  bool writePositionExport = true;
+  
   // check if output file doesn't exists
   if (access("param_RI_study.txt", F_OK ) == -1) {
     // create output file and return true if failed
@@ -89,6 +90,8 @@ inline int Simulate(int argc, const char** argv) {
           // neuroscience/param.h
           param->my_parameter_1_ = movementThreshold;
           param->my_parameter_2_ = deathThreshold;
+	  // set output directory name
+	  param->output_dir_ = "output/" + to_string(movementThreshold) + "_" + to_string(deathThreshold);
         };
 
         Simulation<> simulation(argc, argv, set_param);
@@ -124,35 +127,45 @@ inline int Simulate(int argc, const char** argv) {
         auto my_cells = rm->template Get<MyCell>();
         int numberOfCells = my_cells->size();
 
+	// mean of migration distance
         int tempsMigrationDist = 0;
         vector<array<double, 3>> coordList;
-
         for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-          array<double, 3> positionAtCreation = (*my_cells)[cellNum].GetPreviousPosition();
-          array<double, 3> currentPosition = (*my_cells)[cellNum].GetPosition();
-          double distance = sqrt(pow(currentPosition[0] - positionAtCreation[0], 2) +
-                                 pow(currentPosition[1] - positionAtCreation[1], 2));
-          tempsMigrationDist += distance;
+          tempsMigrationDist += (*my_cells)[cellNum].GetDistanceTravelled();
         }
+	double aveMigrationDist = (double)tempsMigrationDist/numberOfCells;
 
+	// sdt of migration distance
+	double tempsStdDist = 0;
+	for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
+	  double dist = (*my_cells)[cellNum].GetDistanceTravelled();
+	  double sqrDiffToMean =  pow(dist - aveMigrationDist, 2);
+	  tempsStdDist += sqrDiffToMean;
+	}
+	double meanOfDiffs = tempsStdDist/(double)numberOfCells;
+	double stdMigrationDist = sqrt(meanOfDiffs);
 
+	// export position of every cells
+	if (writePositionExport) {
+	  position_exporteur(iteration);
+	}
+	
         double ri0 = getRI(0);
         double ri1 = getRI(1);
         double ri2 = getRI(2);
-        // mean ri
-        double meanRi = (ri0+ri1+ri2)/3;
-        // ri std
-        double stdRi = sqrt((pow(ri0 - meanRi, 2) + pow(ri1 - meanRi, 2)
-                          + pow(ri2 - meanRi, 2)) / 3);
+        // mean/std of ri
+        // double meanRi = (ri0+ri1+ri2)/3;
+        // double stdRi = sqrt((pow(ri0 - meanRi, 2) + pow(ri1 - meanRi, 2)
+        //                   + pow(ri2 - meanRi, 2)) / 3);
         double cellDeath = (1 - ((double)numberOfCells / num_cells)) * 100;
 
-        cout << "  average ri: " << meanRi << " with std: " << stdRi << " ; "
-             << "cell death: " << cellDeath << endl;
+        // cout << "  average ri: " << meanRi << " with std: " << stdRi << " ; "
+        //      << "cell death: " << cellDeath << endl;
 
-        cout << movementThreshold << " " << deathThreshold << " "
+        cout << "  " << movementThreshold << " " << deathThreshold << " "
              << ri0 << " " << ri1 << " " << ri2 << " "
              << cellDensity << " " << cellDeath << " "
-              << (double)tempsMigrationDist/numberOfCells << endl;
+             << aveMigrationDist << " " << stdMigrationDist << endl;
 
         ofstream param_outputFile;
         param_outputFile.open("param_RI_study.txt", std::ios::app);
@@ -160,7 +173,7 @@ inline int Simulate(int argc, const char** argv) {
         param_outputFile << movementThreshold << " " << deathThreshold << " "
                          << ri0 << " " << ri1 << " " << ri2 << " "
                          << cellDensity << " " << cellDeath << " "
-                         << (double)tempsMigrationDist/numberOfCells
+                         << aveMigrationDist << " " << stdMigrationDist
                          << "\n";
 
         param_outputFile.close();
