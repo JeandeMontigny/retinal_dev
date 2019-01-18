@@ -109,10 +109,10 @@ inline int Simulate(int argc, const char** argv) {
              << numberOfIteration << endl;
 
         // min position, max position, number of cells , cell type
-        CellCreator(param->min_bound_, param->max_bound_, 0, 0);
-        CellCreator(param->min_bound_, param->max_bound_, 0, 1);
-        CellCreator(param->min_bound_, param->max_bound_, 0, 2);
-        CellCreator(param->min_bound_, param->max_bound_, num_cells, -1);
+        CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 0);
+        CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 1);
+        CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 2);
+        CellCreator<MyCell>(param->min_bound_, param->max_bound_, num_cells, -1);
 
         // 3. Define substances
         ModelInitializer::DefineSubstance(0, "on_diffusion", diffusion_coef, decay_const,

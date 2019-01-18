@@ -38,14 +38,14 @@ using namespace std;
     int GetInternalClock() const { return internal_clock_[kIdx]; }
 
     inline void SetLabel(int label) { labelSWC_[kIdx] = label; }
-    inline int GetLabel() { return labelSWC_[kIdx]; }
+    inline int GetLabel() const { return labelSWC_[kIdx]; }
     inline void IncreaseLabel() { labelSWC_[kIdx] = labelSWC_[kIdx] + 1; }
 
     void SetPreviousPosition(array<double, 3> position) { previous_position_[kIdx] = position; }
-    array<double, 3> GetPreviousPosition() { return previous_position_[kIdx]; }
+    array<double, 3> GetPreviousPosition() const { return previous_position_[kIdx]; }
 
     void SetDistanceTravelled(double distance) { distance_travelled_[kIdx] = distance; }
-    double GetDistanceTravelled() {return distance_travelled_[kIdx]; }
+    double GetDistanceTravelled() const {return distance_travelled_[kIdx]; }
 
    private:
     vec<int> cell_type_;
