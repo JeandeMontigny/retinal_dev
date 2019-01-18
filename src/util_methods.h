@@ -5,14 +5,13 @@ namespace bdm {
 using namespace std;
 
   // define my cell creator
-  template <typename TSimulation = Simulation<>>
+  template <typename TCell, typename TSimulation = Simulation<>>
   static void CellCreator(double min, double max, int num_cells, int cellType) {
     auto* sim = TSimulation::GetActive();
     auto* rm = sim->GetResourceManager();
     auto* random = sim->GetRandom();
 
-    auto* container = rm->template Get<MyCell>();
-    container->reserve(num_cells);
+    rm->template Reserve<TCell>(num_cells);
 
     for (int i = 0; i < num_cells; i++) {
       double x = random->Uniform(min + 100, max - 100);
@@ -21,7 +20,7 @@ using namespace std;
       double z = random->Uniform(min + 20, min + 35);
       std::array<double, 3> position = {x, y, z};
 
-      auto&& cell = rm->template New<MyCell>(position);
+      TCell cell(position);
       cell.SetDiameter(random->Uniform(7, 8));  // random diameter
       cell.SetCellType(cellType);
       cell.SetInternalClock(0);
@@ -29,9 +28,8 @@ using namespace std;
       cell.AddBiologyModule(Substance_secretion_BM());
       cell.AddBiologyModule(RGC_mosaic_BM());
       cell.AddBiologyModule(Neurite_creation_BM());
+      rm->push_back(cell);
     }
-
-    container->Commit();
   }  // end CellCreator
 
 
@@ -107,29 +105,30 @@ using namespace std;
     auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
     int seed = sim->GetRandom()->GetSeed();
-    auto my_cells = rm->template Get<MyCell>();
 
-    for (unsigned int cellNum = 0; cellNum < my_cells->size(); cellNum++) {
-      auto&& cell = (*my_cells)[cellNum];
-      int thisCellType = cell.GetCellType();
-      auto cellPosition = cell.GetPosition();
-      ofstream swcFile;
-      string swcFileName = Concat(param->output_dir_, "/swc_files/cell", cellNum,
-                                  "_type", thisCellType, "_seed", seed, ".swc")
-                               .c_str();
-      swcFile.open(swcFileName);
-      cell->SetLabel(1);
-      // swcFile << labelSWC_ << " 1 " << cellPosition[0] << " "
-      //         << cellPosition[1]  << " " << cellPosition[2] << " "
-      //         << cell->GetDiameter()/2 << " -1";
-      swcFile << cell->GetLabel() << " 1 0 0 0 " << cell->GetDiameter() / 2
-              << " -1";
+    rm->ApplyOnAllElements([&](auto&& so, SoHandle) {
+      if (so->template IsSoType<MyCell>()) {
+        auto&& cell = so.template ReinterpretCast<MyCell>();
+        int thisCellType = cell.GetCellType();
+        auto cellPosition = cell.GetPosition();
+        ofstream swcFile;
+        string swcFileName = Concat(param->output_dir_, "/swc_files/cell", cell.GetUid(),
+                                    "_type", thisCellType, "_seed", seed, ".swc")
+                                 .c_str();
+        swcFile.open(swcFileName);
+        cell->SetLabel(1);
+        // swcFile << labelSWC_ << " 1 " << cellPosition[0] << " "
+        //         << cellPosition[1]  << " " << cellPosition[2] << " "
+        //         << cell->GetDiameter()/2 << " -1";
+        swcFile << cell->GetLabel() << " 1 0 0 0 " << cell->GetDiameter() / 2
+                << " -1";
 
-      for (auto& ne : cell->GetDaughters()) {
-        swcFile << swc_neurites(ne, 1, cellPosition);
-      }  // end for neurite in cell
-      swcFile.close();
-    }  // end for cell in simulation
+        for (auto& ne : cell->GetDaughters()) {
+          swcFile << swc_neurites(ne, 1, cellPosition);
+        }  // end for neurite in cell
+        swcFile.close();
+      }
+    });  // end for cell in simulation
     std::cout << "swc export done" << std::endl;
   }  // end morpho_exporteur
 
