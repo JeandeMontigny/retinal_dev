@@ -58,8 +58,9 @@ using namespace std;
 
   // Define my custom neurite MyNeurite, which extends NeuriteElement
   BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
-    BDM_SIM_OBJECT_HEADER(MyNeurite, experimental::neuroscience::NeuriteElement, 1, has_to_retract_, beyond_threshold_,
-                          sleep_mode_, diam_before_retract_, subtype_, its_soma_);
+    BDM_SIM_OBJECT_HEADER(MyNeurite, experimental::neuroscience::NeuriteElement, 1,
+      has_to_retract_, beyond_threshold_, sleep_mode_,
+      diam_before_retract_, subtype_, its_soma_);
 
    public:
     MyNeuriteExt() {}
@@ -72,7 +73,7 @@ using namespace std;
     template <typename TEvent, typename TOther>
     MyNeuriteExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
       subtype_[kIdx] = other->subtype_[other->kIdx];
-      its_soma_[kIdx] = other->its_soma_[kIdx];
+      its_soma_[kIdx] = other->its_soma_[other->kIdx];
     }
 
     template <typename TOther>
