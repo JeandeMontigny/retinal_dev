@@ -9,7 +9,7 @@ using namespace std;
   // Define dendrites behavior for RGC dendritic growth
   struct RGC_dendrite_growth_BM : public BaseBiologyModule {
     RGC_dendrite_growth_BM() : BaseBiologyModule({
-      experimental::neuroscience::NeuriteBifurcationEvent::kEventId
+     experimental::neuroscience::NeuriteBifurcationEvent::kEventId
     }) {}
 
     /// Default event constructor
@@ -90,8 +90,8 @@ using namespace std;
           }
 
           // homo-type interaction
-          double squared_radius = 4;
-          int ownType = 0;
+          double squared_radius = 2;
+          int sameType = 0;
           int otherType = 0;
           // lambda updating counters for neurites neighbours
           auto countNeighbours = [&](const auto* neighbor) {
@@ -102,12 +102,15 @@ using namespace std;
               // if neurites have not the same soma
               if (!(n_soptr->GetMySoma() == ne->GetMySoma())) {
                 // if neurites got the same type
-                if (n_soptr->GetSubtype()/100 == ne->GetSubtype()/100) {
-                  ownType++;
+                if (n_soptr->GetSubtype() == ne->GetSubtype()) {
+                  sameType++;
                 }
                 else {
                   otherType++;
                 }
+              }
+              else {
+                sameType--;
               }
             }
           }; // end lambda
@@ -115,8 +118,8 @@ using namespace std;
           auto* ctxt = TSimulation::GetActive()->GetExecutionContext();
           ctxt->ForEachNeighborWithinRadius(countNeighbours, *ne, squared_radius);
           // if is surrounded by homotype dendrites
-          if (ownType > otherType) {
-            // ne->SetHasToRetract(true);
+          if (sameType > otherType) {
+            ne->SetHasToRetract(true);
             ne->SetDiamBeforeRetraction(ne->GetDiameter());
           }
 
@@ -132,7 +135,7 @@ using namespace std;
         else {
           ne->RetractTerminalEnd(40);
           // if neurite has retracted enough
-        	if (ne->GetDiameter() > ne->GetDiamBeforeRetraction()+0.1) {
+        	if (ne->GetDiameter() > ne->GetDiamBeforeRetraction()+0.08) {
         	   ne->SetSleepMode(true);
              // ne->RemoveBiologyModule(
              //   ne->GetBiologyModules<RGC_dendrite_growth_BM>()[0]);
