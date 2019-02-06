@@ -43,7 +43,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 2000;
+  int maxStep = 2500;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400;
