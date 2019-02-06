@@ -65,9 +65,11 @@ using namespace std;
 
         // if neurite doesn't have to retract
         if (!ne->GetHasToRetract()) {
+          double bifurcProba = 0.0108*ne->GetDiameter();
+
           double gradientWeight = 0.2;
-          double randomnessWeight = 0.2;
-          double oldDirectionWeight = 1.6;
+          double randomnessWeight = 0.5;
+          double oldDirectionWeight = 4.5;
           array<double, 3> random_axis = {random->Uniform(-1, 1),
                                           random->Uniform(-1, 1),
                                           random->Uniform(-1, 1)};
@@ -83,14 +85,13 @@ using namespace std;
           ne->ElongateTerminalEnd(25, newStepDirection);
           ne->SetDiameter(ne->GetDiameter()-0.00075);
 
-          if (concentration > 0.04
-            && random->Uniform() < 0.0072*ne->GetDiameter()) {
+          if (concentration > 0.04 && random->Uniform() < bifurcProba) {
             ne->SetDiameter(ne->GetDiameter()-0.005);
             ne->Bifurcate();
           }
 
           // homo-type interaction
-          double squared_radius = 2;
+          double squared_radius = 1;
           int sameType = 0;
           int otherType = 0;
           // lambda updating counters for neurites neighbours
@@ -134,9 +135,10 @@ using namespace std;
         // if neurite has to retract
         else {
           ne->RetractTerminalEnd(40);
-          // if neurite has retracted enough
-        	if (ne->GetDiameter() > ne->GetDiamBeforeRetraction()+0.08) {
-        	   ne->SetSleepMode(true);
+          // if neurite has retracted enough because of interactions
+        	if (!ne->GetBeyondThreshold()
+            && ne->GetDiameter() > ne->GetDiamBeforeRetraction()+0.02) {
+        	  ne->SetSleepMode(true);
              // ne->RemoveBiologyModule(
              //   ne->GetBiologyModules<RGC_dendrite_growth_BM>()[0]);
         	}
