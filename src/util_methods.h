@@ -27,7 +27,7 @@ using namespace std;
       cell.SetPreviousPosition(position);
       cell.AddBiologyModule(Substance_secretion_BM());
       cell.AddBiologyModule(RGC_mosaic_BM());
-      cell.AddBiologyModule(Neurite_creation_BM());
+      // cell.AddBiologyModule(Neurite_creation_BM());
       rm->push_back(cell);
     }
   }  // end CellCreator

@@ -91,8 +91,19 @@ using namespace std;
         }
       }
 
+      /* -- cell death for Ankur model -- */
+      if (cellClock == 40) {
+        auto* param = sim->GetParam();
+        double x_position = cell->GetPosition()[0];
+        double x_max = param->max_bound_;
+        if (x_position < x_max/3.5 || x_position > x_max-(x_max/3.5)){
+          cell->RemoveFromSimulation();
+          return;
+        }
+      }
+
       /* -- cell movement -- */
-      if (withMovement && cellClock >= 100 && cellClock < 900
+      if (withMovement && cellClock >= 100 && cellClock < 2900
           && concentration >= movementThreshold) {
         // cell movement based on homotype substance gradient
           cell->UpdatePosition(diff_gradient);
@@ -260,6 +271,8 @@ using namespace std;
           ne->SetMySoma(soma->GetSoPtr());
         }
         // remove BM that are not needed anymore
+        // const auto* mosaic_bm = soma->template GetBiologyModules<RGC_mosaic_BM>()[0];
+        // soma->RemoveBiologyModule(mosaic_bm);
         // soma->RemoveBiologyModule(soma->template GetBiologyModules<RGC_mosaic_BM>()[0]);
 //        soma->RemoveBiologyModule(soma->template GetBiologyModules<Neurite_creation_BM>()[0]);
       }

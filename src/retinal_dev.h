@@ -43,7 +43,7 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 2500;
+  int maxStep = 3000;
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 4400;
@@ -57,7 +57,7 @@ inline int Simulate(int argc, const char** argv) {
   // if you want to write file for RI and cell position
   bool writeRI = false;
   bool writePositionExport = false;
-  bool writeSWC = true;
+  bool writeSWC = false;
   bool writeMigrationDistance = false;
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
@@ -98,18 +98,6 @@ inline int Simulate(int argc, const char** argv) {
   ModelInitializer::DefineSubstance(2, "on_off_diffusion", diffusion_coef, decay_const,
                                     param->max_bound_ / 2);
 
-  // define substances for RGC dendrite attraction
-  ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide", 0, 0,
-                                    param->max_bound_ / 2);
-  ModelInitializer::DefineSubstance(4, "off_substance_RGC_guide", 0, 0,
-                                    param->max_bound_ / 2);
-  // create substance gaussian distribution for RGC dendrite attraction
-  // average peak distance for ON cells: 15.959 with std of 5.297;
-  ModelInitializer::InitializeSubstance(3, "on_substance_RGC_guide",
-                                        GaussianBand(45, 6, Axis::kZAxis));
-  // average peak distance for OFF cells: 40.405 with std of 8.39;
-  ModelInitializer::InitializeSubstance(4, "off_substance_RGC_guide",
-                                        GaussianBand(69, 8, Axis::kZAxis));
   cout << "substances created" << endl;
 
   // prepare export
