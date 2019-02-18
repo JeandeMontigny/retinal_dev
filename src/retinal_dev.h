@@ -3,7 +3,7 @@
 
 #include "biodynamo.h"
 #include "neuroscience/neuroscience.h"
-#include "substance_initializers.h"
+// #include "substance_initializers.h"
 
 #include "extended_objects.h"
 #include "rgc_soma_bm.h"
@@ -19,28 +19,7 @@ enum Substances {
 };
 
 
-// define compile time parameter
-BDM_CTPARAM(experimental::neuroscience) {
-  BDM_CTPARAM_HEADER(experimental::neuroscience);
-
-  using SimObjectTypes = CTList<MyCell, MyNeurite>;
-  using NeuronSoma = MyCell;
-  using NeuriteElement = MyNeurite;
-
-  BDM_CTPARAM_FOR(bdm, MyCell) {
-    using BiologyModules = CTList<RGC_mosaic_BM,
-                                  Substance_secretion_BM,
-                                  Neurite_creation_BM>;
-  };
-
-  BDM_CTPARAM_FOR(bdm, MyNeurite) {
-    using BiologyModules = CTList<RGC_dendrite_growth_BM>;
-  };
-};
-
-
 /* -------- simulate -------- */
-template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
   int maxStep = 2500;
@@ -62,7 +41,7 @@ inline int Simulate(int argc, const char** argv) {
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
 
-  auto set_param = [&](auto* param) {
+  auto set_param = [](Param* param) {
     // cell are created with +100 to min and -100 to max
     param->bound_space_ = true;
     param->min_bound_ = 0;
@@ -72,7 +51,7 @@ inline int Simulate(int argc, const char** argv) {
     param->neurite_max_length_ = 2.0;
   };
 
-  Simulation<> simulation(argc, argv, set_param);
+  Simulation simulation(argc, argv, set_param);
   auto* rm = simulation.GetResourceManager();
   auto* random = simulation.GetRandom();
   auto* scheduler = simulation.GetScheduler();

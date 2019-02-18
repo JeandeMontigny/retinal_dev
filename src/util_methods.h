@@ -5,13 +5,11 @@ namespace bdm {
 using namespace std;
 
   // define my cell creator
-  template <typename TCell, typename TSimulation = Simulation<>>
+  template <typename TCell>
   static void CellCreator(double min, double max, int num_cells, int cellType) {
-    auto* sim = TSimulation::GetActive();
+    auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
     auto* random = sim->GetRandom();
-
-    rm->template Reserve<TCell>(num_cells);
 
     for (int i = 0; i < num_cells; i++) {
       double x = random->Uniform(min + 100, max - 100);
@@ -20,24 +18,23 @@ using namespace std;
       double z = random->Uniform(min + 20, min + 35);
       std::array<double, 3> position = {x, y, z};
 
-      TCell cell(position);
-      cell.SetDiameter(random->Uniform(7, 8));  // random diameter
-      cell.SetCellType(cellType);
-      cell.SetInternalClock(0);
-      cell.SetPreviousPosition(position);
-      cell.AddBiologyModule(Substance_secretion_BM());
-      cell.AddBiologyModule(RGC_mosaic_BM());
-      cell.AddBiologyModule(Neurite_creation_BM());
+      TCell* cell = new TCell(position);
+      cell->SetDiameter(random->Uniform(7, 8));  // random diameter
+      cell->SetCellType(cellType);
+      cell->SetInternalClock(0);
+      cell->SetPreviousPosition(position);
+      cell->AddBiologyModule(new Substance_secretion_BM());
+      cell->AddBiologyModule(new RGC_mosaic_BM());
+      cell->AddBiologyModule(new Neurite_creation_BM());
       rm->push_back(cell);
     }
   }  // end CellCreator
 
 
   // position exporteur
-  template <typename TSimulation = Simulation<>>
   inline void position_exporteur(int i) {
-    int seed = TSimulation::GetActive()->GetRandom()->GetSeed();
-    auto* param = TSimulation::GetActive()->GetParam();
+    int seed = Simulation::GetActive()->GetRandom()->GetSeed();
+    auto* param = Simulation::GetActive()->GetParam();
     ofstream positionFileOn;
     ofstream positionFileOff;
     ofstream positionFileOnOff;
@@ -64,7 +61,7 @@ using namespace std;
     positionFileOnOff.open(fileNameOnOff);
     positionFileAll.open(fileNameAll);
 
-    auto* sim = TSimulation::GetActive();
+    auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
     auto my_cells = rm->template Get<MyCell>();
     int numberOfCells = my_cells->size();
@@ -99,16 +96,15 @@ using namespace std;
   }  // end position_exporteur
 
 
-  template <typename TSimulation = Simulation<>>
   inline void morpho_exporteur() {
-    auto* sim = TSimulation::GetActive();
+    auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
     int seed = sim->GetRandom()->GetSeed();
 
     rm->ApplyOnAllElements([&](auto&& so, SoHandle) {
-      if (so->template IsSoType<MyCell>()) {
-        auto&& cell = so.template ReinterpretCast<MyCell>();
+      if (auto cell = so->template As<MyNeurite>()) {
+
         int thisCellType = cell.GetCellType();
         auto cellPosition = cell.GetPosition();
         ofstream swcFile;
@@ -228,9 +224,8 @@ using namespace std;
 
 
   // get cells coordinate of same cell_type_ to call computeRI
-  template <typename TSimulation = Simulation<>>
   inline double getRI(int desiredCellType) {
-    auto* sim = TSimulation::GetActive();
+    auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
     auto my_cells = rm->template Get<MyCell>();  // get cell list
     vector<array<double, 3>> coordList;          // list of coordinate
@@ -248,9 +243,8 @@ using namespace std;
 
 
   // write file with migration distance of every cells
-  template <typename TSimulation = Simulation<>>
   inline void exportMigrationDist() {
-    auto* sim = TSimulation::GetActive();
+    auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
     auto my_cells = rm->template Get<MyCell>();  // get cell list

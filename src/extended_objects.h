@@ -8,113 +8,106 @@ namespace bdm {
 using namespace std;
 
   // Define my custom cell MyCell extending NeuronSoma
-  BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
-    BDM_SIM_OBJECT_HEADER(MyCell, experimental::neuroscience::NeuronSoma, 1, cell_type_, internal_clock_,
-      labelSWC_, previous_position_, distance_travelled_);
+  class MyCell : public experimental::neuroscience::NeuronSoma {
+    BDM_SIM_OBJECT_HEADER(MyCell, experimental::neuroscience::NeuronSoma, 1, cell_type_,
+      internal_clock_, labelSWC_, previous_position_, distance_travelled_);
 
    public:
-    MyCellExt() {}
-
-    MyCellExt(const array<double, 3>& position) : Base(position) {}
+    MyCell() {}
+    explicit MyCell(const array<double, 3>& position) : Base(position) {}
 
     /// Default event constructor
-    template <typename TEvent, typename TOther>
-    MyCellExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) {
+    MyCell(const Event& event, SimObject* other, uint64_t new_oid = 0)
+      : Base(event, other, new_oid) {}
+
+    // Default event handler
+    void EventHandler(const Event& event, SimObject* other1,
+                      SimObject* other2 = nullptr) override {
+      Base::EventHandler(event, other1, other2);
     }
 
-    /// Default event handler (exising biology module won't be modified on
-    /// any event)
-    template <typename TEvent, typename... TOthers>
-    void EventHandler(const TEvent& event, TOthers*... others) {
-      Base::EventHandler(event, others...);
-    }
-
-    void SetCellType(int t) { cell_type_[kIdx] = t; }
-    int GetCellType() const { return cell_type_[kIdx]; }
+    void SetCellType(int t) { cell_type_ = t; }
+    int GetCellType() const { return cell_type_; }
     // This function is used by ParaView for coloring the cells by their type
-    int* GetCellTypePtr() { return cell_type_.data(); }
+    // int* GetCellTypePtr() { return cell_type_.data(); }
 
-    void SetInternalClock(int t) { internal_clock_[kIdx] = t; }
-    int GetInternalClock() const { return internal_clock_[kIdx]; }
+    void SetInternalClock(int t) { internal_clock_ = t; }
+    int GetInternalClock() const { return internal_clock_; }
 
-    inline void SetLabel(int label) { labelSWC_[kIdx] = label; }
-    inline int GetLabel() const { return labelSWC_[kIdx]; }
-    inline void IncreaseLabel() { labelSWC_[kIdx] = labelSWC_[kIdx] + 1; }
+    inline void SetLabel(int label) { labelSWC_ = label; }
+    inline int GetLabel() const { return labelSWC_; }
+    inline void IncreaseLabel() { labelSWC_ = labelSWC_ + 1; }
 
-    void SetPreviousPosition(array<double, 3> position) { previous_position_[kIdx] = position; }
-    const array<double, 3>& GetPreviousPosition() const { return previous_position_[kIdx]; }
+    void SetPreviousPosition(array<double, 3> position) { previous_position_ = position; }
+    const array<double, 3>& GetPreviousPosition() const { return previous_position_; }
 
-    void SetDistanceTravelled(double distance) { distance_travelled_[kIdx] = distance; }
-    double GetDistanceTravelled() const {return distance_travelled_[kIdx]; }
+    void SetDistanceTravelled(double distance) { distance_travelled_ = distance; }
+    double GetDistanceTravelled() const {return distance_travelled_; }
 
    private:
-    vec<int> cell_type_;
-    vec<int> internal_clock_;
-    vec<int> labelSWC_;
-    vec<array<double, 3>> previous_position_;
-    vec<double> distance_travelled_;
+    int cell_type_;
+    int internal_clock_;
+    int labelSWC_;
+    array<double, 3> previous_position_;
+    double distance_travelled_;
   };
 
 
   // Define my custom neurite MyNeurite, which extends NeuriteElement
-  BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
+  class MyNeurite : public experimental::neuroscience::NeuriteElement {
     BDM_SIM_OBJECT_HEADER(MyNeurite, experimental::neuroscience::NeuriteElement, 1,
       has_to_retract_, beyond_threshold_, sleep_mode_,
       diam_before_retract_, subtype_, its_soma_);
 
    public:
-    MyNeuriteExt() {}
-    MyNeuriteExt(const array<double, 3>& position) : Base(position) {}
+    MyNeurite() {}
+    explicit MyNeurite(const array<double, 3>& position) : Base(position) {}
 
-    using NeuronSoma = typename TCompileTimeParam::NeuronSoma;
-    using NeuronSomaSoPtr = ToSoPtr<NeuronSoma>;
-
-    /// Default event constructor
-    template <typename TEvent, typename TOther>
-    MyNeuriteExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
-      subtype_[kIdx] = other->subtype_[other->kIdx];
-      its_soma_[kIdx] = other->its_soma_[other->kIdx];
+    // Default event constructor
+    MyNeurite(const Event& event, SimObject* other,
+              uint64_t new_oid = 0) : Base(event, other, new_oid) {
+      this->subtype_ = other->subtype_;
+      this->its_soma_ = other->its_soma_;
     }
 
-    template <typename TOther>
-    MyNeuriteExt(const experimental::neuroscience::NewNeuriteExtensionEvent& event,
-      TOther* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
-      its_soma_[kIdx] = other->GetSoPtr();
+    MyNeurite(const experimental::neuroscience::NewNeuriteExtensionEvent& event,
+      SimObject* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
+      this->its_soma_ = other->GetSoPtr();
     }
 
-    /// Default event handler
-    template <typename TEvent, typename... TOthers>
-    void EventHandler(const TEvent& event, TOthers*... others) {
-      Base::EventHandler(event, others...);
+    // Default event handler
+    void EventHandler(const Event& event, SimObject* other1,
+                      SimObject* other2 = nullptr) override {
+      Base::EventHandler(event, other1, other2);
     }
 
-    void SetHasToRetract(int r) { has_to_retract_[kIdx] = r; }
-    bool GetHasToRetract() const { return has_to_retract_[kIdx]; }
+    void SetHasToRetract(int r) { has_to_retract_ = r; }
+    bool GetHasToRetract() const { return has_to_retract_; }
 
-    void SetBeyondThreshold(int r) { beyond_threshold_[kIdx] = r; }
-    bool GetBeyondThreshold() const { return beyond_threshold_[kIdx]; }
+    void SetBeyondThreshold(int r) { beyond_threshold_ = r; }
+    bool GetBeyondThreshold() const { return beyond_threshold_; }
 
-    void SetSleepMode(int r) { sleep_mode_[kIdx] = r; }
-    bool GetSleepMode() const { return sleep_mode_[kIdx]; }
+    void SetSleepMode(int r) { sleep_mode_ = r; }
+    bool GetSleepMode() const { return sleep_mode_; }
 
-    void SetDiamBeforeRetraction(double d) { diam_before_retract_[kIdx] = d; }
-    double GetDiamBeforeRetraction() const { return diam_before_retract_[kIdx]; }
+    void SetDiamBeforeRetraction(double d) { diam_before_retract_ = d; }
+    double GetDiamBeforeRetraction() const { return diam_before_retract_; }
 
-    void SetSubtype(int st) { subtype_[kIdx] = st; }
-    int GetSubtype() { return subtype_[kIdx]; }
+    void SetSubtype(int st) { subtype_ = st; }
+    int GetSubtype() { return subtype_; }
     // ParaView
-    NeuronSomaSoPtr* GetSubtypePtr() { return subtype_.data(); }
+    // TNeuronSomaSoPtr* GetSubtypePtr() { return subtype_.data(); }
 
-    void SetMySoma(NeuronSomaSoPtr soma) { its_soma_[kIdx] = soma; }
-    NeuronSomaSoPtr GetMySoma() { return its_soma_[kIdx]; }
+    void SetMySoma(NeuronSomaSoPtr soma) { its_soma_ = soma; }
+    TNeuronSomaSoPtr GetMySoma() { return its_soma_; }
 
    private:
-    vec<bool> has_to_retract_;
-    vec<bool> beyond_threshold_;
-    vec<bool> sleep_mode_;
-    vec<int> diam_before_retract_;
-    vec<int> subtype_;
-    vec<NeuronSomaSoPtr> its_soma_;
+    bool has_to_retract_;
+    bool beyond_threshold_;
+    bool sleep_mode_;
+    int diam_before_retract_;
+    int subtype_;
+    TNeuronSomaSoPtr its_soma_;
   };
 
 } // end namespace bdm
