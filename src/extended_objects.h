@@ -60,19 +60,21 @@ using namespace std;
       diam_before_retract_, subtype_, its_soma_);
 
    public:
+   using NeuronSomaSoPtr = SoPointer<experimental::neuroscience::NeuronSoma>;
     MyNeurite() {}
     explicit MyNeurite(const array<double, 3>& position) : Base(position) {}
 
     // Default event constructor
-    MyNeurite(const Event& event, SimObject* other,
-              uint64_t new_oid = 0) : Base(event, other, new_oid) {
-      this->subtype_ = other->subtype_;
-      this->its_soma_ = other->its_soma_;
+    MyNeurite(const Event& event, SimObject* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
+      if (auto* neurite = other->As<MyNeurite>()) {
+        this->subtype_ = neurite->subtype_;
+        this->its_soma_ = neurite->GetSoPtr<experimental::neuroscience::NeuronSoma>();
+      }
     }
 
     MyNeurite(const experimental::neuroscience::NewNeuriteExtensionEvent& event,
       SimObject* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
-      this->its_soma_ = other->GetSoPtr();
+      this->its_soma_ = other->GetSoPtr<experimental::neuroscience::NeuronSoma>();
     }
 
     // Default event handler
@@ -99,7 +101,7 @@ using namespace std;
     // TNeuronSomaSoPtr* GetSubtypePtr() { return subtype_.data(); }
 
     void SetMySoma(NeuronSomaSoPtr soma) { its_soma_ = soma; }
-    TNeuronSomaSoPtr GetMySoma() { return its_soma_; }
+    NeuronSomaSoPtr GetMySoma() { return its_soma_; }
 
    private:
     bool has_to_retract_;
@@ -107,7 +109,7 @@ using namespace std;
     bool sleep_mode_;
     int diam_before_retract_;
     int subtype_;
-    TNeuronSomaSoPtr its_soma_;
+    NeuronSomaSoPtr its_soma_;
   };
 
 } // end namespace bdm

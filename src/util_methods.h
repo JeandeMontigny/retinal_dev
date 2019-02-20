@@ -63,32 +63,60 @@ using namespace std;
 
     auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
-    auto my_cells = rm->template Get<MyCell>();
-    int numberOfCells = my_cells->size();
 
-    for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-      auto thisCellType = (*my_cells)[cellNum].GetCellType();
-      auto position = (*my_cells)[cellNum].GetPosition();
-      if (thisCellType == 0) {
-        positionFileOn << position[0] << " " << position[1] << " " << position[2]
-                       << "\n";
-        positionFileAll << position[0] << " " << position[1] << " " << position[2]
-                        << " on\n";
-      } else if (thisCellType == 1) {
-        positionFileOff << position[0] << " " << position[1] << " " << position[2]
-                        << "\n";
-        positionFileAll << position[0] << " " << position[1] << " " << position[2]
-                        << " off\n";
-      } else if (thisCellType == 2) {
-        positionFileOnOff << position[0] << " " << position[1] << " "
-                          << position[2] << "\n";
-        positionFileAll << position[0] << " " << position[1] << " " << position[2]
-                        << " onoff\n";
-      } else {
-        positionFileAll << position[0] << " " << position[1] << " " << position[2]
-                        << " nd\n";
+    rm->ApplyOnAllElements([&](SimObject* so) {
+      if (auto* soma = so->As<MyCell>()) {
+        auto thisCellType = soma->GetCellType();
+        auto position = soma->GetPosition();
+        if (thisCellType == 0) {
+          positionFileOn << position[0] << " " << position[1] << " " << position[2]
+                         << "\n";
+          positionFileAll << position[0] << " " << position[1] << " " << position[2]
+                          << " on\n";
+        } else if (thisCellType == 1) {
+          positionFileOff << position[0] << " " << position[1] << " " << position[2]
+                          << "\n";
+          positionFileAll << position[0] << " " << position[1] << " " << position[2]
+                          << " off\n";
+        } else if (thisCellType == 2) {
+          positionFileOnOff << position[0] << " " << position[1] << " "
+                            << position[2] << "\n";
+          positionFileAll << position[0] << " " << position[1] << " " << position[2]
+                          << " onoff\n";
+        } else {
+          positionFileAll << position[0] << " " << position[1] << " " << position[2]
+                          << " nd\n";
+        }
       }
-    }
+    });
+
+    // auto my_cells = rm->template Get<MyCell>();
+    // int numberOfCells = my_cells->size();
+    //
+    // for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
+    //   auto thisCellType = (*my_cells)[cellNum].GetCellType();
+    //   auto position = (*my_cells)[cellNum].GetPosition();
+    //   if (thisCellType == 0) {
+    //     positionFileOn << position[0] << " " << position[1] << " " << position[2]
+    //                    << "\n";
+    //     positionFileAll << position[0] << " " << position[1] << " " << position[2]
+    //                     << " on\n";
+    //   } else if (thisCellType == 1) {
+    //     positionFileOff << position[0] << " " << position[1] << " " << position[2]
+    //                     << "\n";
+    //     positionFileAll << position[0] << " " << position[1] << " " << position[2]
+    //                     << " off\n";
+    //   } else if (thisCellType == 2) {
+    //     positionFileOnOff << position[0] << " " << position[1] << " "
+    //                       << position[2] << "\n";
+    //     positionFileAll << position[0] << " " << position[1] << " " << position[2]
+    //                     << " onoff\n";
+    //   } else {
+    //     positionFileAll << position[0] << " " << position[1] << " " << position[2]
+    //                     << " nd\n";
+    //   }
+    // }
+
     positionFileOn.close();
     positionFileOff.close();
     positionFileOnOff.close();
@@ -103,14 +131,14 @@ using namespace std;
     int seed = sim->GetRandom()->GetSeed();
 
     rm->ApplyOnAllElements([&](auto&& so, SoHandle) {
+      // FIXME: As<MyCell> ??
       if (auto cell = so->template As<MyNeurite>()) {
 
-        int thisCellType = cell.GetCellType();
-        auto cellPosition = cell.GetPosition();
+        int thisCellType = cell->GetCellType();
+        auto cellPosition = cell->GetPosition();
         ofstream swcFile;
-        string swcFileName = Concat(param->output_dir_, "/swc_files/cell", cell.GetUid(),
-                                    "_type", thisCellType, "_seed", seed, ".swc")
-                                 .c_str();
+        string swcFileName = Concat(param->output_dir_, "/swc_files/cell", cell->GetUid(),
+                                    "_type", thisCellType, "_seed", seed, ".swc").c_str();
         swcFile.open(swcFileName);
         cell->SetLabel(1);
         // swcFile << labelSWC_ << " 1 " << cellPosition[0] << " "
@@ -120,6 +148,7 @@ using namespace std;
                 << " -1";
 
         for (auto& ne : cell->GetDaughters()) {
+          // FIXME: call of swc_neurites() fail
           swcFile << swc_neurites(ne, 1, cellPosition);
         }  // end for neurite in cell
         swcFile.close();
@@ -219,7 +248,8 @@ using namespace std;
     double meanOfDiffs = temp / (double)(shortestDistList.size());
     double std = sqrt(meanOfDiffs);
 
-    return aveShortestDist / std;  // return RI
+    // return RI
+    return aveShortestDist / std;
   }  // end computeRI
 
 
@@ -227,18 +257,20 @@ using namespace std;
   inline double getRI(int desiredCellType) {
     auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
-    auto my_cells = rm->template Get<MyCell>();  // get cell list
-    vector<array<double, 3>> coordList;          // list of coordinate
-    int numberOfCells = my_cells->size();
-    // for each cell in simulation
-    for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-      auto thisCellType = (*my_cells)[cellNum].GetCellType();
-      if (thisCellType == desiredCellType) {  // if cell is of the desired type
-        auto position = (*my_cells)[cellNum].GetPosition();  // get its position
-        coordList.push_back(position);  // put cell coord in the list
+    vector<array<double, 3>> coordList;
+
+    rm->ApplyOnAllElements([&](SimObject* so) {
+      if (auto* soma = so->As<MyCell>()) {
+        auto thisCellType = soma->GetCellType();
+        // if cell is of the desired type
+        if (thisCellType == desiredCellType) {
+          // put cell coord in the list
+          coordList.push_back(soma->GetPosition());
+        }
       }
-    }
-    return computeRI(coordList);  // return RI for desired cell type
+    });
+    // return RI for desired cell type
+    return computeRI(coordList);
   }  // end getRI
 
 
@@ -247,24 +279,22 @@ using namespace std;
     auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
-    auto my_cells = rm->template Get<MyCell>();  // get cell list
-    vector<array<double, 3>> coordList;          // list of coordinate
-    int numberOfCells = my_cells->size();
-
+    vector<array<double, 3>> coordList;
     ofstream migrationDist_outputFile;
     migrationDist_outputFile.open(Concat(param->output_dir_, "/migration_distance.txt"));
-    // for each cell in simulation
-    for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
 
-      // array<double, 3> positionAtCreation = (*my_cells)[cellNum].GetPreviousPosition();
-      // array<double, 3> currentPosition = (*my_cells)[cellNum].GetPosition();
-      // double distance = sqrt(pow(currentPosition[0] - positionAtCreation[0], 2) +
-      //                        pow(currentPosition[1] - positionAtCreation[1], 2));
+    rm->ApplyOnAllElements([&](SimObject* so) {
+      if (auto* soma = so->As<MyCell>()) {
+        // array<double, 3> positionAtCreation = (*my_cells)[cellNum].GetPreviousPosition();
+        // array<double, 3> currentPosition = (*my_cells)[cellNum].GetPosition();
+        // double distance = sqrt(pow(currentPosition[0] - positionAtCreation[0], 2) +
+        //                        pow(currentPosition[1] - positionAtCreation[1], 2));
 
-      double distance = (*my_cells)[cellNum].GetDistanceTravelled();
+        double distance = soma->GetDistanceTravelled();
+        migrationDist_outputFile << distance << "\n";
+      }
+    });
 
-      migrationDist_outputFile << distance << "\n";
-    }
     migrationDist_outputFile.close();
     std::cout << "migration distance export done" << std::endl;
   } // end exportMigrationDist

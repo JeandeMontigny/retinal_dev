@@ -41,7 +41,7 @@ inline int Simulate(int argc, const char** argv) {
   // create cell position files every outputFrequence steps
   int outputFrequence = 100;
 
-  auto set_param = [](Param* param) {
+  auto set_param = [&](Param* param) {
     // cell are created with +100 to min and -100 to max
     param->bound_space_ = true;
     param->min_bound_ = 0;
@@ -125,26 +125,30 @@ inline int Simulate(int argc, const char** argv) {
       if (i % 10 == 0) {
         // get cell list size
         rm = simulation.GetResourceManager();
-        auto my_cells = rm->template Get<MyCell>();
-        int numberOfCells = my_cells->size();
+        int numberOfCells = 0;
         // TODO: vector for unknow number of cell type
         int numberOfCells0 = 0;
         int numberOfCells1 = 0;
         int numberOfCells2 = 0;
         int numberOfDendrites = 0;
 
-        for (int cellNum = 0; cellNum < numberOfCells;
-             cellNum++) {  // for each cell in simulation
-          numberOfDendrites += (*my_cells)[cellNum].GetDaughters().size();
-          auto thisCellType = (*my_cells)[cellNum].GetCellType();
-          if (thisCellType == 0) {
-            numberOfCells0++;
-          } else if (thisCellType == 1) {
-            numberOfCells1++;
-          } else if (thisCellType == 2) {
-            numberOfCells2++;
+        rm->ApplyOnAllElements([&](SimObject* so) {
+          if (auto* cell = so->As<MyCell>()) {
+            numberOfDendrites += cell->GetDaughters().size();
+            auto thisCellType = cell->GetCellType();
+            if (thisCellType == 0) {
+              numberOfCells0++;
+            } else if (thisCellType == 1) {
+              numberOfCells1++;
+            } else if (thisCellType == 2) {
+              numberOfCells2++;
+            }
           }
-        }
+        });
+        // TODO: sum of vector for unknow number of cell type
+        numberOfCells = numberOfCells0 + numberOfCells1 + numberOfCells2;
+
+        // terminal output
         cout << "-- step " << i*10 << " out of " << maxStep << " --\n"
              << numberOfCells << " cells in simulation: "
              << (1 - ((double)numberOfCells / num_cells)) * 100
