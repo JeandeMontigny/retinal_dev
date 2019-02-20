@@ -149,7 +149,7 @@ using namespace std;
 
         for (auto& ne : cell->GetDaughters()) {
           // FIXME: call of swc_neurites() fail
-          swcFile << util_methods::wc_neurites(ne, 1, cellPosition);
+          swcFile << wc_neurites(ne, 1, cellPosition);
         }  // end for neurite in cell
         swcFile.close();
       }
