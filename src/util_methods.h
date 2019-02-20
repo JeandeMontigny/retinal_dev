@@ -124,40 +124,6 @@ using namespace std;
   }  // end position_exporteur
 
 
-  inline void morpho_exporteur() {
-    auto* sim = Simulation::GetActive();
-    auto* rm = sim->GetResourceManager();
-    auto* param = sim->GetParam();
-    int seed = sim->GetRandom()->GetSeed();
-
-    rm->ApplyOnAllElements([&](auto&& so, SoHandle) {
-      // FIXME: As<MyCell> ??
-      if (auto cell = so->template As<MyNeurite>()) {
-
-        int thisCellType = cell->GetCellType();
-        auto cellPosition = cell->GetPosition();
-        ofstream swcFile;
-        string swcFileName = Concat(param->output_dir_, "/swc_files/cell", cell->GetUid(),
-                                    "_type", thisCellType, "_seed", seed, ".swc").c_str();
-        swcFile.open(swcFileName);
-        cell->SetLabel(1);
-        // swcFile << labelSWC_ << " 1 " << cellPosition[0] << " "
-        //         << cellPosition[1]  << " " << cellPosition[2] << " "
-        //         << cell->GetDiameter()/2 << " -1";
-        swcFile << cell->GetLabel() << " 1 0 0 0 " << cell->GetDiameter() / 2
-                << " -1";
-
-        for (auto& ne : cell->GetDaughters()) {
-          // FIXME: call of swc_neurites() fail
-          swcFile << wc_neurites(ne, 1, cellPosition);
-        }  // end for neurite in cell
-        swcFile.close();
-      }
-    });  // end for cell in simulation
-    std::cout << "swc export done" << std::endl;
-  }  // end morpho_exporteur
-
-
   template <typename T>
   inline string swc_neurites(T ne, int labelParent,
                              array<double, 3> somaPosition) {
@@ -205,6 +171,40 @@ using namespace std;
 
     return temps;
   }  // end swc_neurites
+
+
+  inline void morpho_exporteur() {
+    auto* sim = Simulation::GetActive();
+    auto* rm = sim->GetResourceManager();
+    auto* param = sim->GetParam();
+    int seed = sim->GetRandom()->GetSeed();
+
+    rm->ApplyOnAllElements([&](auto&& so, SoHandle) {
+      // FIXME: As<MyCell> ??
+      if (auto cell = so->template As<MyNeurite>()) {
+
+        int thisCellType = cell->GetCellType();
+        auto cellPosition = cell->GetPosition();
+        ofstream swcFile;
+        string swcFileName = Concat(param->output_dir_, "/swc_files/cell", cell->GetUid(),
+                                    "_type", thisCellType, "_seed", seed, ".swc").c_str();
+        swcFile.open(swcFileName);
+        cell->SetLabel(1);
+        // swcFile << labelSWC_ << " 1 " << cellPosition[0] << " "
+        //         << cellPosition[1]  << " " << cellPosition[2] << " "
+        //         << cell->GetDiameter()/2 << " -1";
+        swcFile << cell->GetLabel() << " 1 0 0 0 " << cell->GetDiameter() / 2
+                << " -1";
+
+        for (auto& ne : cell->GetDaughters()) {
+          // FIXME: call of swc_neurites() fail
+          swcFile << swc_neurites(ne, 1, cellPosition);
+        }  // end for neurite in cell
+        swcFile.close();
+      }
+    });  // end for cell in simulation
+    std::cout << "swc export done" << std::endl;
+  }  // end morpho_exporteur
 
 
   // RI computation
