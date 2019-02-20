@@ -90,33 +90,6 @@ using namespace std;
       }
     });
 
-    // auto my_cells = rm->template Get<MyCell>();
-    // int numberOfCells = my_cells->size();
-    //
-    // for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-    //   auto thisCellType = (*my_cells)[cellNum].GetCellType();
-    //   auto position = (*my_cells)[cellNum].GetPosition();
-    //   if (thisCellType == 0) {
-    //     positionFileOn << position[0] << " " << position[1] << " " << position[2]
-    //                    << "\n";
-    //     positionFileAll << position[0] << " " << position[1] << " " << position[2]
-    //                     << " on\n";
-    //   } else if (thisCellType == 1) {
-    //     positionFileOff << position[0] << " " << position[1] << " " << position[2]
-    //                     << "\n";
-    //     positionFileAll << position[0] << " " << position[1] << " " << position[2]
-    //                     << " off\n";
-    //   } else if (thisCellType == 2) {
-    //     positionFileOnOff << position[0] << " " << position[1] << " "
-    //                       << position[2] << "\n";
-    //     positionFileAll << position[0] << " " << position[1] << " " << position[2]
-    //                     << " onoff\n";
-    //   } else {
-    //     positionFileAll << position[0] << " " << position[1] << " " << position[2]
-    //                     << " nd\n";
-    //   }
-    // }
-
     positionFileOn.close();
     positionFileOff.close();
     positionFileOnOff.close();
@@ -180,8 +153,7 @@ using namespace std;
     int seed = sim->GetRandom()->GetSeed();
 
     rm->ApplyOnAllElements([&](auto&& so, SoHandle) {
-      // FIXME: As<MyCell> ??
-      if (auto cell = so->template As<MyNeurite>()) {
+      if (auto cell = so->template As<MyCell>()) {
 
         int thisCellType = cell->GetCellType();
         auto cellPosition = cell->GetPosition();
@@ -197,7 +169,6 @@ using namespace std;
                 << " -1";
 
         for (auto& ne : cell->GetDaughters()) {
-          // FIXME: call of swc_neurites() fail
           swcFile << swc_neurites(ne, 1, cellPosition);
         }  // end for neurite in cell
         swcFile.close();
