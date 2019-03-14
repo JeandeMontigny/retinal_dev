@@ -30,7 +30,7 @@ using namespace std;
       bool withMovement = true;
       double movementThreshold = 1.21;
       bool withDeath = true;
-      double deathThreshold = 1.216;
+      double deathThreshold = 1.2138; // 216
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
@@ -243,7 +243,7 @@ using namespace std;
     template <typename T, typename TSimulation = Simulation<>>
     void Run(T* soma) {
 
-      bool createDendrites = true;
+      bool createDendrites = false;
 
       if (createDendrites && soma->GetInternalClock() == 1000 && soma->GetCellType() != -1) {
         auto* sim = TSimulation::GetActive();
