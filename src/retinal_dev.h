@@ -43,10 +43,10 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 2500;
+  int maxStep = 2500; // 1000 without dendrites; 2500 with dendrites
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
-  int num_cells = 4400;
+  int num_cells = 3200; // 3200 // 4400
   double diffusion_coef = 0.65;
   double decay_const = 0.1;
 
@@ -55,7 +55,7 @@ inline int Simulate(int argc, const char** argv) {
 
   // set write output param
   // if you want to write file for RI and cell position
-  bool writeRI = false;
+  bool writeRI = true;
   bool writePositionExport = false;
   bool writeSWC = true;
   bool writeMigrationDistance = false;
@@ -138,16 +138,16 @@ inline int Simulate(int argc, const char** argv) {
       double RIon = getRI(0);
       double RIoff = getRI(1);
       double RIonOff = getRI(2);
+      auto my_cells = rm->template Get<MyCell>();
+      int numberOfCells = my_cells->size();
       if (writeRI) {
-        outputFile << RIon << " " << RIoff << " " << RIonOff << "\n";
+        outputFile << RIon << " " << RIoff << " " << RIonOff << " " << (1 - ((double)numberOfCells / num_cells)) * 100 << "\n";
       }
 
       // print
       if (i % 10 == 0) {
         // get cell list size
         rm = simulation.GetResourceManager();
-        auto my_cells = rm->template Get<MyCell>();
-        int numberOfCells = my_cells->size();
         // TODO: vector for unknow number of cell type
         int numberOfCells0 = 0;
         int numberOfCells1 = 0;
