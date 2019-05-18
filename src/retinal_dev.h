@@ -1,6 +1,8 @@
 #ifndef RETINAL_DEV_
 #define RETINAL_DEV_
 
+// bdm version 1968ec2
+
 #include "biodynamo.h"
 #include "neuroscience/neuroscience.h"
 #include "substance_initializers.h"
