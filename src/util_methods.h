@@ -21,7 +21,7 @@ using namespace std;
       std::array<double, 3> position = {x, y, z};
 
       TCell cell(position);
-      cell.SetDiameter(random->Uniform(7, 8));  // random diameter
+      cell.SetDiameter(random->Uniform(7, 8));
       cell.SetCellType(cellType);
       cell.SetInternalClock(0);
       cell.SetPreviousPosition(position);
@@ -184,6 +184,9 @@ using namespace std;
 
   // RI computation
   inline double computeRI(vector<array<double, 3>> coordList) {
+    if (coordList.size() < 2) {
+      return 0;
+    }
     vector<double> shortestDistList;
     for (unsigned int i = 0; i < coordList.size();
          i++) {  // for each cell of same type in the simulation
