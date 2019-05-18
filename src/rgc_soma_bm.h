@@ -250,8 +250,18 @@ using namespace std;
         auto* random = sim->GetRandom();
         // dendrite per cell: average=4.5; std=1.2
         int thisSubType = soma->GetCellType()*100 + (int)random->Uniform(0, 20);
+
+        // vector< array<double, 3>> root_list  = {{0, 0, 1}, {0.2, 0, 1}, {-0.2, 0, 1},
+        //   {0, 0.2, 1}, {0, -0.2, 1}, {0.2, 0.2, 1}, {-0.2, 0.2, 1}, {0.2, -0.5, 1}};
+
         for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
-          auto&& ne = soma->ExtendNewNeurite({0, 0, 1});
+          // if all dendrites are created at the same location, setting mechanical
+          // interaction to true crashes simu
+          //TODO: cleaner fix
+          // array<double, 3> dendrite_root = root_list[i];
+          array<double, 3> dendrite_root = {0,0,1};
+
+          auto&& ne = soma->ExtendNewNeurite(dendrite_root);
           ne->AddBiologyModule(RGC_dendrite_growth_BM());
           ne->SetHasToRetract(false);
           ne->SetSleepMode(false);
