@@ -65,7 +65,7 @@ using namespace std;
 
         // if neurite doesn't have to retract
         if (!ne->GetHasToRetract()) {
-          double bifurcProba = 0.0108*ne->GetDiameter();
+          double bifurcProba = 0.01*ne->GetDiameter();
 
           double gradientWeight = 0.2;
           double randomnessWeight = 0.5;
@@ -83,7 +83,7 @@ using namespace std;
             Math::Add(oldDirection, randomDirection), gradDirection);
 
           ne->ElongateTerminalEnd(25, newStepDirection);
-          ne->SetDiameter(ne->GetDiameter()-0.00075);
+          ne->SetDiameter(ne->GetDiameter()-0.0007);
 
           if (concentration > 0.04 && random->Uniform() < bifurcProba) {
             ne->SetDiameter(ne->GetDiameter()-0.005);
@@ -91,7 +91,7 @@ using namespace std;
           }
 
           // homo-type interaction
-          double squared_radius = 1;
+          double squared_radius = 1.1; // 1.2
           int sameType = 0;
           int otherType = 0;
           // lambda updating counters for neurites neighbours
