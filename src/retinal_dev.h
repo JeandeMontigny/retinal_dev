@@ -86,9 +86,9 @@ inline int Simulate(int argc, const char** argv) {
   cout << "modelling with seed " << mySeed << endl;
 
   // min position, max position, number of cells , cell type
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 50, 0);
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 50, 1);
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 50, 2);
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 1, 0);
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 1, 1);
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 1, 2);
   CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, -1);
   cout << "cells created" << endl;
 
