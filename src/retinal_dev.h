@@ -45,19 +45,19 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
   // number of simulation steps
-  int maxStep = 2500; // 1000 without dendrites; 2500 with dendrites
+  int maxStep = 1200; // 1000 without dendrites; 2500 with dendrites
   // Create an artificial bounds for the simulation space
   int cubeDim = 500;
   int num_cells = 3200; // 3200 // 4400
-  double diffusion_coef = 0.65;
-  double decay_const = 0.1;
+  // double diffusion_coef = 0.65;
+  // double decay_const = 0.1;
 
   double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
   cout << "cell density: " << cellDensity << " cells per cm2" << endl;
 
   // set write output param
   // if you want to write file for RI and cell position
-  bool writeRI = true;
+  bool writeRI = false;
   bool writePositionExport = false;
   bool writeSWC = true;
   bool writeMigrationDistance = false;
@@ -68,7 +68,7 @@ inline int Simulate(int argc, const char** argv) {
     // cell are created with +100 to min and -100 to max
     param->bound_space_ = true;
     param->min_bound_ = 0;
-    param->max_bound_ = cubeDim + 200;
+    param->max_bound_ = cubeDim + 300;
     // set min and max length for neurite segments
     param->neurite_min_length_ = 1.0;
     param->neurite_max_length_ = 2.0;
@@ -86,19 +86,19 @@ inline int Simulate(int argc, const char** argv) {
   cout << "modelling with seed " << mySeed << endl;
 
   // min position, max position, number of cells , cell type
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 0);
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 1);
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 2);
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, num_cells, -1);
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 50, 0);
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 50, 1);
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 50, 2);
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, -1);
   cout << "cells created" << endl;
 
   // 3. Define substances
-  ModelInitializer::DefineSubstance(0, "on_diffusion", diffusion_coef, decay_const,
-                                    param->max_bound_ / 2);
-  ModelInitializer::DefineSubstance(1, "off_diffusion", diffusion_coef, decay_const,
-                                    param->max_bound_ / 2);
-  ModelInitializer::DefineSubstance(2, "on_off_diffusion", diffusion_coef, decay_const,
-                                    param->max_bound_ / 2);
+  // ModelInitializer::DefineSubstance(0, "on_diffusion", diffusion_coef, decay_const,
+  //                                   param->max_bound_ / 2);
+  // ModelInitializer::DefineSubstance(1, "off_diffusion", diffusion_coef, decay_const,
+  //                                   param->max_bound_ / 2);
+  // ModelInitializer::DefineSubstance(2, "on_off_diffusion", diffusion_coef, decay_const,
+  //                                   param->max_bound_ / 2);
 
   // define substances for RGC dendrite attraction
   ModelInitializer::DefineSubstance(3, "on_substance_RGC_guide", 0, 0,

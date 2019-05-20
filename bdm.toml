@@ -1,5 +1,5 @@
 [simulation]
-run_mechanical_interactions = true
+run_mechanical_interactions = false
 # bound_space = true
 max_displacement = 3.0
 leaking_edges = false

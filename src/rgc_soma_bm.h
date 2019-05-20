@@ -242,12 +242,18 @@ using namespace std;
 
     template <typename T, typename TSimulation = Simulation<>>
     void Run(T* soma) {
+      auto* sim = TSimulation::GetActive();
+      auto* random = sim->GetRandom();
 
-      bool createDendrites = true;
+      /* -- internal clock -- */
+      // probability to increase internal clock
+      if (random->Uniform(0, 1) < 0.96) {
+        // update cell internal clock
+        soma->SetInternalClock(soma->GetInternalClock() + 1);
+      } // end update cell internal clock
 
-      if (createDendrites && soma->GetInternalClock() == 1000 && soma->GetCellType() != -1) {
-        auto* sim = TSimulation::GetActive();
-        auto* random = sim->GetRandom();
+      if (createDendrites_ && soma->GetInternalClock() == 1 && soma->GetCellType() != -1) {
+
         // dendrite per cell: average=4.5; std=1.2
         int thisSubType = soma->GetCellType()*100 + (int)random->Uniform(0, 20);
 
@@ -272,11 +278,13 @@ using namespace std;
         // remove BM that are not needed anymore
         // soma->RemoveBiologyModule(soma->template GetBiologyModules<RGC_mosaic_BM>()[0]);
 //        soma->RemoveBiologyModule(soma->template GetBiologyModules<Neurite_creation_BM>()[0]);
+      createDendrites_ = false;
       }
     } // end run
 
   private:
     ClassDefNV(Neurite_creation_BM, 1);
+    bool createDendrites_ = true;
   }; // endNeurite_creation_BM
 
 } // end namespace bdm
