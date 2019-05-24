@@ -260,7 +260,7 @@ using namespace std;
         // vector< array<double, 3>> root_list  = {{0, 0, 1}, {0.2, 0, 1}, {-0.2, 0, 1},
         //   {0, 0.2, 1}, {0, -0.2, 1}, {0.2, 0.2, 1}, {-0.2, 0.2, 1}, {0.2, -0.5, 1}};
 
-        for (int i = 0; i <= (int)random->Uniform(2, 7); i++) {
+        for (int i = 0; i <= (int)random->Uniform(4, 7); i++) {
           // if all dendrites are created at the same location, setting mechanical
           // interaction to true crashes simu
           //TODO: cleaner fix
@@ -279,6 +279,9 @@ using namespace std;
         // soma->RemoveBiologyModule(soma->template GetBiologyModules<RGC_mosaic_BM>()[0]);
 //        soma->RemoveBiologyModule(soma->template GetBiologyModules<Neurite_creation_BM>()[0]);
       createDendrites_ = false;
+      }
+      if (soma->GetInternalClock() > 100 && soma->GetDaughters().size()==0) {
+	soma->RemoveFromSimulation();
       }
     } // end run
 
