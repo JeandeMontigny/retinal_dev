@@ -32,8 +32,7 @@ using namespace std;
         init_ = true;
       }
 
-      if (active_ && ne->IsTerminal()
-          && ne->GetDiameter() > 0.5 + random->Uniform(0, 0.05)) {
+      if (active_ && ne->IsTerminal() && ne->GetDiameter() > 0.5) {
 
         int cellClock = ne->GetMySoma()->GetInternalClock();
 
@@ -160,7 +159,7 @@ using namespace std;
 
             // if neurite doesn't have to retract
             if (!ne->GetHasToRetract()) {
-              double bifurcProba = 0.01*ne->GetDiameter();
+              double bifurcProba = 0.011*ne->GetDiameter();
 
               double gradientWeight = 0.3; // 0.2
               double randomnessWeight = 0.5;
