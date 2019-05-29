@@ -32,7 +32,8 @@ using namespace std;
         init_ = true;
       }
 
-      if (ne->IsTerminal() && ne->GetDiameter() >= 0.5) {
+      if (active_ && ne->IsTerminal()
+          && ne->GetDiameter() > 0.5 + random->Uniform(0, 0.05)) {
 
         int cellClock = ne->GetMySoma()->GetInternalClock();
 
@@ -71,8 +72,7 @@ using namespace std;
               dg_off_RGCguide_->GetConcentration(ne->GetPosition());
           } // end if off cell
 
-          // 0.013
-          double bifurcProba = 0.013*ne->GetDiameter(); // 0.012
+          double bifurcProba = 0.0133*ne->GetDiameter(); // 0.012
 
           double gradientWeight = 0.15; // 0.2
           double randomnessWeight = 0.6; // 0.5
@@ -92,7 +92,8 @@ using namespace std;
           ne->ElongateTerminalEnd(25, newStepDirection);
           ne->SetDiameter(ne->GetDiameter()-0.0007);
 
-          if (concentration > 0.04 && random->Uniform() < bifurcProba) {
+          if (concentration > 0.04 && ne->GetDiameter() > 0.55
+              && random->Uniform() < bifurcProba) {
             ne->SetDiameter(ne->GetDiameter()-0.005);
             ne->Bifurcate();
           }
@@ -110,9 +111,9 @@ using namespace std;
               concentration =
                 dg_on_RGCguide_->GetConcentration(ne->GetPosition());
               // shrinkage
-              if (conc_on < 0.06) { // 0.065
+              if (conc_on < 0.055) { // 0.06
                 ne->SetHasToRetract(true);
-                ne->SetDiamBeforeRetraction(ne->GetDiameter()+0.01);
+                ne->SetDiamBeforeRetraction(ne->GetDiameter());
               }
             } // end if on cell
 
@@ -124,7 +125,7 @@ using namespace std;
               // shrinkage
               if (conc_off < 0.04) {
                 ne->SetHasToRetract(true);
-                ne->SetDiamBeforeRetraction(ne->GetDiameter()+0.01);
+                ne->SetDiamBeforeRetraction(ne->GetDiameter());
               }
             } // end if off cell
 
@@ -143,9 +144,9 @@ using namespace std;
                   &gradient_RGCguide);
               }
               // shrinkage
-              if (conc_on < 0.06 && conc_off < 0.04) {
+              if (conc_on < 0.055 && conc_off < 0.04) { // 0.06 ; 0.04
                 ne->SetHasToRetract(true);
-                ne->SetDiamBeforeRetraction(ne->GetDiameter()+0.01);
+                ne->SetDiamBeforeRetraction(ne->GetDiameter());
               }
             } // end if on-off cell
 
@@ -177,9 +178,10 @@ using namespace std;
                 Math::Add(oldDirection, randomDirection), gradDirection);
 
               ne->ElongateTerminalEnd(25, newStepDirection);
-              ne->SetDiameter(ne->GetDiameter()-0.0005);
+              ne->SetDiameter(ne->GetDiameter()-0.0007);
 
-              if ((conc_on > 0.04 || conc_off > 0.016) && random->Uniform() < bifurcProba) {
+              if ((conc_on > 0.04 || conc_off > 0.016) && ne->GetDiameter() > 0.55
+                  && random->Uniform() < bifurcProba) {
                 ne->SetDiameter(ne->GetDiameter()-0.005);
                 ne->Bifurcate();
               }
@@ -248,6 +250,9 @@ using namespace std;
 
 
       } // if is terminal
+      else if (active_) {
+        active_ = false;
+      }
 
       // else {
       //   if (ne->GetMySoma()->GetInternalClock() > 600) {
@@ -276,6 +281,7 @@ using namespace std;
 
    private:
     bool init_ = false;
+    bool active_ = true;
     DiffusionGrid* dg_on_RGCguide_ = nullptr;
     DiffusionGrid* dg_off_RGCguide_ = nullptr;
     ClassDefNV(RGC_dendrite_growth_BM, 1);

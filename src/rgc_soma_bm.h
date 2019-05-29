@@ -277,7 +277,7 @@ using namespace std;
         }
         // remove BM that are not needed anymore
         // soma->RemoveBiologyModule(soma->template GetBiologyModules<RGC_mosaic_BM>()[0]);
-//        soma->RemoveBiologyModule(soma->template GetBiologyModules<Neurite_creation_BM>()[0]);
+        // soma->RemoveBiologyModule(soma->template GetBiologyModules<Neurite_creation_BM>()[0]);
       createDendrites_ = false;
       }
       if (soma->GetInternalClock() > 100 && soma->GetDaughters().size()==0) {
