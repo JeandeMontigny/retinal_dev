@@ -37,13 +37,13 @@ using namespace std;
         int cellClock = ne->GetMySoma()->GetInternalClock();
 
         array<double, 3> gradient_RGCguide;
-        double concentration;
+        double concentration = 0;
 
         double conc_on =
           dg_on_RGCguide_->GetConcentration(ne->GetPosition());
         double conc_off =
           dg_off_RGCguide_->GetConcentration(ne->GetPosition());
-        if (conc_on*0.2 > conc_off) {
+        if (conc_on*0.8 > conc_off) { // 0.4
           concentration = conc_on;
           dg_on_RGCguide_->GetGradient(ne->GetPosition(),
             &gradient_RGCguide);
@@ -56,8 +56,23 @@ using namespace std;
 
 
         if (cellClock < 500) {
+          // bi-stratified proportion: 2/3 at the begining -> 1/3 at the end
+          // 50% of on and off cells will be mono-stratified
+          if (ne->GetSubtype()/100 == 0 && ne->GetSubtype()%2 == 0) {
+            dg_on_RGCguide_->GetGradient(ne->GetPosition(),
+              &gradient_RGCguide);
+            concentration =
+              dg_on_RGCguide_->GetConcentration(ne->GetPosition());
+          } // end if on cell
+          if (ne->GetSubtype()/100 == 1 && ne->GetSubtype()%2 == 0) {
+            dg_off_RGCguide_->GetGradient(ne->GetPosition(),
+              &gradient_RGCguide);
+            concentration =
+              dg_off_RGCguide_->GetConcentration(ne->GetPosition());
+          } // end if off cell
 
-          double bifurcProba = 0.012*ne->GetDiameter();
+          // 0.013
+          double bifurcProba = 0.013*ne->GetDiameter(); // 0.012
 
           double gradientWeight = 0.15; // 0.2
           double randomnessWeight = 0.6; // 0.5
@@ -95,9 +110,9 @@ using namespace std;
               concentration =
                 dg_on_RGCguide_->GetConcentration(ne->GetPosition());
               // shrinkage
-              if (conc_on < 0.065) {
+              if (conc_on < 0.06) { // 0.065
                 ne->SetHasToRetract(true);
-                ne->SetDiamBeforeRetraction(ne->GetDiameter());
+                ne->SetDiamBeforeRetraction(ne->GetDiameter()+0.01);
               }
             } // end if on cell
 
@@ -107,9 +122,9 @@ using namespace std;
               concentration =
                 dg_off_RGCguide_->GetConcentration(ne->GetPosition());
               // shrinkage
-              if (conc_off < 0.02) {
+              if (conc_off < 0.04) {
                 ne->SetHasToRetract(true);
-                ne->SetDiamBeforeRetraction(ne->GetDiameter());
+                ne->SetDiamBeforeRetraction(ne->GetDiameter()+0.01);
               }
             } // end if off cell
 
@@ -118,7 +133,7 @@ using namespace std;
                 dg_on_RGCguide_->GetConcentration(ne->GetPosition());
               double conc_off =
                 dg_off_RGCguide_->GetConcentration(ne->GetPosition());
-              if (conc_on > conc_off) {
+              if (conc_on*0.8 > conc_off) {
                 concentration = conc_on;
                 dg_on_RGCguide_->GetGradient(ne->GetPosition(),
                   &gradient_RGCguide);
@@ -128,9 +143,9 @@ using namespace std;
                   &gradient_RGCguide);
               }
               // shrinkage
-              if (conc_on < 0.065 && conc_off < 0.02) {
+              if (conc_on < 0.06 && conc_off < 0.04) {
                 ne->SetHasToRetract(true);
-                ne->SetDiamBeforeRetraction(ne->GetDiameter());
+                ne->SetDiamBeforeRetraction(ne->GetDiameter()+0.01);
               }
             } // end if on-off cell
 
@@ -146,7 +161,7 @@ using namespace std;
             if (!ne->GetHasToRetract()) {
               double bifurcProba = 0.01*ne->GetDiameter();
 
-              double gradientWeight = 0.2;
+              double gradientWeight = 0.3; // 0.2
               double randomnessWeight = 0.5;
               double oldDirectionWeight = 4.5;
               array<double, 3> random_axis = {random->Uniform(-1, 1),
@@ -162,15 +177,15 @@ using namespace std;
                 Math::Add(oldDirection, randomDirection), gradDirection);
 
               ne->ElongateTerminalEnd(25, newStepDirection);
-              ne->SetDiameter(ne->GetDiameter()-0.0007);
+              ne->SetDiameter(ne->GetDiameter()-0.0005);
 
-              if (concentration > 0.04 && random->Uniform() < bifurcProba) {
+              if ((conc_on > 0.04 || conc_off > 0.016) && random->Uniform() < bifurcProba) {
                 ne->SetDiameter(ne->GetDiameter()-0.005);
                 ne->Bifurcate();
               }
 
               // homo-type interaction
-              double squared_radius = 1.1; // 1.2
+              double squared_radius = 1; // 1.2
               int sameType = 0;
               int otherType = 0;
               // lambda updating counters for neurites neighbours

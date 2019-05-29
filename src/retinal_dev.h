@@ -86,10 +86,10 @@ inline int Simulate(int argc, const char** argv) {
   cout << "modelling with seed " << mySeed << endl;
 
   // min position, max position, number of cells , cell type
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 1, 0);
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 1, 1);
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 1, 2);
-  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, -1);
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 10, 0); // on
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 10, 1); // off
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 10, 2); // on-off
+  CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, -1); // undifferentiated
   cout << "cells created" << endl;
 
   // 3. Define substances
