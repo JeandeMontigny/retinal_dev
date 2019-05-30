@@ -68,7 +68,7 @@ using namespace std;
               dg_off_RGCguide_->GetConcentration(ne->GetPosition());
           } // end if off cell
 
-          double bifurcProba = 0.0133*ne->GetDiameter(); // 0.0133
+          double bifurcProba = 0.0135*ne->GetDiameter(); // 0.0133
 
           double gradientWeight = 0.15; // 0.2
           double randomnessWeight = 0.6; // 0.5
@@ -90,14 +90,7 @@ using namespace std;
 
           if (concentration > 0.04 && ne->GetDiameter() > 0.55
               && random->Uniform() < bifurcProba) {
-            // ne->SetDiameter(ne->GetDiameter()-0.005);
-            // ne->Bifurcate()
-            auto ne2 = ne->Bifurcate()[1];
-            auto ne2_soptr = ne2->template
-              ReinterpretCast<MyNeurite>()->GetSoPtr();
-            ne2_soptr->SetDiamLimit(ne->GetDiamLimit());
-            ne2_soptr->SetSubtype(ne->GetSubtype());
-            ne2_soptr->SetMySoma(ne->GetMySoma());
+            ne->Bifurcate();
           }
 
         } // end if cellClock
@@ -184,13 +177,7 @@ using namespace std;
 
               if ((conc_on > 0.04 || conc_off > 0.016) && ne->GetDiameter() > 0.55
                   && random->Uniform() < bifurcProba) {
-                // ne->SetDiameter(ne->GetDiameter()-0.005);
-                auto ne2 = ne->Bifurcate()[1];
-                auto ne2_soptr = ne2->template
-                  ReinterpretCast<MyNeurite>()->GetSoPtr();
-                ne2_soptr->SetDiamLimit(ne->GetDiamLimit());
-                ne2_soptr->SetSubtype(ne->GetSubtype());
-                ne2_soptr->SetMySoma(ne->GetMySoma());
+                ne->Bifurcate();
               }
 
               // homo-type interaction

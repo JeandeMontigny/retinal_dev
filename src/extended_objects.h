@@ -74,6 +74,7 @@ using namespace std;
     MyNeuriteExt(const TEvent& event, TOther* other, uint64_t new_oid = 0) : Base(event, other, new_oid) {
       subtype_[kIdx] = other->subtype_[other->kIdx];
       its_soma_[kIdx] = other->its_soma_[other->kIdx];
+      diam_limit_[kIdx] = other->diam_limit_[other->kIdx];
     }
 
     template <typename TOther>
