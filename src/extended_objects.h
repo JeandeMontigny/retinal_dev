@@ -9,8 +9,8 @@ using namespace std;
 
   // Define my custom cell MyCell extending NeuronSoma
   BDM_SIM_OBJECT(MyCell, experimental::neuroscience::NeuronSoma) {
-    BDM_SIM_OBJECT_HEADER(MyCell, experimental::neuroscience::NeuronSoma, 1, cell_type_, internal_clock_,
-      labelSWC_, previous_position_, distance_travelled_);
+    BDM_SIM_OBJECT_HEADER(MyCell, experimental::neuroscience::NeuronSoma, 1,
+      cell_type_, internal_clock_, labelSWC_, previous_position_, distance_travelled_);
 
    public:
     MyCellExt() {}
@@ -59,8 +59,8 @@ using namespace std;
   // Define my custom neurite MyNeurite, which extends NeuriteElement
   BDM_SIM_OBJECT(MyNeurite, experimental::neuroscience::NeuriteElement) {
     BDM_SIM_OBJECT_HEADER(MyNeurite, experimental::neuroscience::NeuriteElement, 1,
-      has_to_retract_, beyond_threshold_, sleep_mode_,
-      diam_before_retract_, subtype_, its_soma_);
+      has_to_retract_, beyond_threshold_, sleep_mode_, diam_before_retract_,
+      diam_limit_, subtype_, its_soma_);
 
    public:
     MyNeuriteExt() {}
@@ -100,6 +100,9 @@ using namespace std;
     void SetDiamBeforeRetraction(double d) { diam_before_retract_[kIdx] = d; }
     double GetDiamBeforeRetraction() const { return diam_before_retract_[kIdx]; }
 
+    void SetDiamLimit(double diam) { diam_limit_[kIdx] = diam; }
+    double GetDiamLimit() const {return diam_limit_[kIdx]; }
+
     void SetSubtype(int st) { subtype_[kIdx] = st; }
     int GetSubtype() { return subtype_[kIdx]; }
     // ParaView
@@ -113,6 +116,7 @@ using namespace std;
     vec<bool> beyond_threshold_;
     vec<bool> sleep_mode_;
     vec<int> diam_before_retract_;
+    vec<double> diam_limit_;
     vec<int> subtype_;
     vec<NeuronSomaSoPtr> its_soma_;
   };

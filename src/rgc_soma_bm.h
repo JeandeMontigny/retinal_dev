@@ -260,7 +260,7 @@ using namespace std;
         // vector< array<double, 3>> root_list  = {{0, 0, 1}, {0.2, 0, 1}, {-0.2, 0, 1},
         //   {0, 0.2, 1}, {0, -0.2, 1}, {0.2, 0.2, 1}, {-0.2, 0.2, 1}, {0.2, -0.5, 1}};
 
-        for (int i = 0; i <= (int)random->Uniform(4, 7); i++) {
+        for (int i = 0; i <= (int)random->Uniform(3, 7); i++) {
           // if all dendrites are created at the same location, setting mechanical
           // interaction to true crashes simu
           //TODO: cleaner fix
@@ -273,6 +273,7 @@ using namespace std;
           ne->SetSleepMode(false);
           ne->SetBeyondThreshold(false);
           ne->SetSubtype(thisSubType);
+          ne->SetDiamLimit(double(random->Uniform(0.55, 0.75))); // 0.5
           ne->SetMySoma(soma->GetSoPtr());
         }
         // remove BM that are not needed anymore

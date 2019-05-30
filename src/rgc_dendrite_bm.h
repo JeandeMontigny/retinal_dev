@@ -32,13 +32,11 @@ using namespace std;
         init_ = true;
       }
 
-      if (active_ && ne->IsTerminal() && ne->GetDiameter() > 0.5) {
+      if (ne->IsTerminal() && ne->GetDiameter() > ne->GetDiamLimit()) {
 
         int cellClock = ne->GetMySoma()->GetInternalClock();
-
         array<double, 3> gradient_RGCguide;
         double concentration = 0;
-
         double conc_on =
           dg_on_RGCguide_->GetConcentration(ne->GetPosition());
         double conc_off =
@@ -53,7 +51,6 @@ using namespace std;
           dg_off_RGCguide_->GetGradient(ne->GetPosition(),
             &gradient_RGCguide);
         }
-
 
         if (cellClock < 500) {
           // bi-stratified proportion: 2/3 at the begining -> 1/3 at the end
@@ -71,7 +68,7 @@ using namespace std;
               dg_off_RGCguide_->GetConcentration(ne->GetPosition());
           } // end if off cell
 
-          double bifurcProba = 0.0133*ne->GetDiameter(); // 0.012
+          double bifurcProba = 0.0133*ne->GetDiameter(); // 0.0133
 
           double gradientWeight = 0.15; // 0.2
           double randomnessWeight = 0.6; // 0.5
@@ -93,8 +90,14 @@ using namespace std;
 
           if (concentration > 0.04 && ne->GetDiameter() > 0.55
               && random->Uniform() < bifurcProba) {
-            ne->SetDiameter(ne->GetDiameter()-0.005);
-            ne->Bifurcate();
+            // ne->SetDiameter(ne->GetDiameter()-0.005);
+            // ne->Bifurcate()
+            auto ne2 = ne->Bifurcate()[1];
+            auto ne2_soptr = ne2->template
+              ReinterpretCast<MyNeurite>()->GetSoPtr();
+            ne2_soptr->SetDiamLimit(ne->GetDiamLimit());
+            ne2_soptr->SetSubtype(ne->GetSubtype());
+            ne2_soptr->SetMySoma(ne->GetMySoma());
           }
 
         } // end if cellClock
@@ -181,8 +184,13 @@ using namespace std;
 
               if ((conc_on > 0.04 || conc_off > 0.016) && ne->GetDiameter() > 0.55
                   && random->Uniform() < bifurcProba) {
-                ne->SetDiameter(ne->GetDiameter()-0.005);
-                ne->Bifurcate();
+                // ne->SetDiameter(ne->GetDiameter()-0.005);
+                auto ne2 = ne->Bifurcate()[1];
+                auto ne2_soptr = ne2->template
+                  ReinterpretCast<MyNeurite>()->GetSoPtr();
+                ne2_soptr->SetDiamLimit(ne->GetDiamLimit());
+                ne2_soptr->SetSubtype(ne->GetSubtype());
+                ne2_soptr->SetMySoma(ne->GetMySoma());
               }
 
               // homo-type interaction
@@ -249,9 +257,6 @@ using namespace std;
 
 
       } // if is terminal
-      else if (active_) {
-        active_ = false;
-      }
 
       // else {
       //   if (ne->GetMySoma()->GetInternalClock() > 600) {
@@ -280,7 +285,6 @@ using namespace std;
 
    private:
     bool init_ = false;
-    bool active_ = true;
     DiffusionGrid* dg_on_RGCguide_ = nullptr;
     DiffusionGrid* dg_off_RGCguide_ = nullptr;
     ClassDefNV(RGC_dendrite_growth_BM, 1);
