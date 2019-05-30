@@ -273,7 +273,7 @@ using namespace std;
           ne->SetSleepMode(false);
           ne->SetBeyondThreshold(false);
           ne->SetSubtype(thisSubType);
-          ne->SetDiamLimit(double(random->Uniform(0.4, 0.6))); // 0.5
+          ne->SetDiamLimit(double(random->Uniform(0.35, 0.65))); // 0.5
           ne->SetMySoma(soma->GetSoPtr());
         }
         // remove BM that are not needed anymore
