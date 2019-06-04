@@ -14,23 +14,47 @@ using namespace std;
     rm->template Reserve<TCell>(num_cells);
 
     for (int i = 0; i < num_cells; i++) {
-      double x = random->Uniform(min + 100, max - 100);
-      double y = random->Uniform(min + 100, max - 100);
+      double x = random->Uniform(min, max);
+      double y = random->Uniform(min, max);
       // RGCL thickness before cell death ~24
-      double z = random->Uniform(min + 20, 35);
+      double z = random->Uniform(20, 30); // 20, 35
       std::array<double, 3> position = {x, y, z};
 
       TCell cell(position);
-      cell.SetDiameter(random->Uniform(7, 8));  // random diameter
+      cell.SetDiameter(12);
       cell.SetCellType(cellType);
       cell.SetInternalClock(0);
+      cell.SetDensity(0.001);
       cell.SetPreviousPosition(position);
-      cell.AddBiologyModule(Substance_secretion_BM());
-      cell.AddBiologyModule(RGC_mosaic_BM());
+      // cell.AddBiologyModule(Substance_secretion_BM());
+      // cell.AddBiologyModule(RGC_mosaic_BM());
       rm->push_back(cell);
     }
   }  // end CellCreator
 
+
+  inline double cellsDistance(array<double, 3> cell1, array<double, 3> cell2) {
+    double x1 = cell1[0]; double y1 = cell1[1]; double z1 = cell1[2];
+    double x2 = cell2[0]; double y2 = cell2[1]; double z2 = cell2[2];
+
+    return sqrt(pow((x2-x1), 2) + pow((y2-y1), 2) + pow((z2-z1), 2));
+  }
+
+  template <typename TSimulation = Simulation<>>
+  inline bool conflict(array<double, 3> potential_position, double lim) {
+    auto* sim = TSimulation::GetActive();
+    auto* rm = sim->GetResourceManager();
+    auto my_cells = rm->template Get<MyCell>();
+    int numberOfCells = my_cells->size();
+
+    for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
+      auto cell_position = (*my_cells)[cellNum].GetPosition();
+      if (cellsDistance(cell_position, potential_position) < lim) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   // position exporteur
   template <typename TSimulation = Simulation<>>

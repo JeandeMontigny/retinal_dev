@@ -36,145 +36,145 @@ BDM_CTPARAM(experimental::neuroscience) {
 template <typename TSimulation = Simulation<>>
 inline int Simulate(int argc, const char** argv) {
 
-  // good ~ 1.216
-  double startParameterStudyDeath = 1.214; // 1.214
-  double maxParameterStudyDeath = 1.222; // 1.222
-  double ParamStepDeath = 0.0002;
-
-  // good ~ 1.212
-  double startParameterStudyMovement = 1.206; // 1.206
-  double maxParameterStudyMovement = 1.22; // 1.22
-  double ParamStepMovement = 0.001;
-
-  int numberOfIteration = 5;
-
-  bool writePositionExport = true;
-
   // check if output file doesn't exists
-  if (access("param_RI_study.txt", F_OK ) == -1) {
+  if (access("param_RI_study_density.txt", F_OK ) == -1) {
     // create output file and return true if failed
-    if (system("touch ./param_RI_study.txt")) {
+    if (system("touch ./param_RI_study_density.txt")) {
       std::cout << "could not create output file" << std::endl;
     }
   }
 
-  for (double deathThreshold = startParameterStudyDeath;
-       deathThreshold <= maxParameterStudyDeath;
-       deathThreshold += ParamStepDeath) {
+  int start_num_cells = 50;
+  int max_num_cells = 4450;
+  int step_num_cells = 100;
 
-    for (double movementThreshold = startParameterStudyMovement;
-         movementThreshold <= maxParameterStudyMovement;
-         movementThreshold += ParamStepMovement) {
+  int numberOfIteration = 5;
+  bool writePositionExport = true;
 
-           cout << "\nmodelling with parameters "
-           << movementThreshold << " / " << deathThreshold
-           << " out of " << maxParameterStudyMovement << " / " << maxParameterStudyDeath << " (step of " << ParamStepMovement << " / " << ParamStepDeath << ")" << endl;
+    for (int num_cells = start_num_cells; num_cells <= max_num_cells;
+         num_cells += step_num_cells) {
+
+      cout << "modelling with parameters "
+           << num_cells << " out of " << max_num_cells <<" (step of "
+           << step_num_cells << ")" << endl;
 
       for (int iteration = 0; iteration < numberOfIteration; iteration++) {
-
-        // number of simulation steps
-        int maxStep = 1000;
-        // Create an artificial bounds for the simulation space
+        int maxStep = 10;
         int cubeDim = 500;
-        int num_cells = 4400;
-        double diffusion_coef = 0.65;
-        double decay_const = 0.1;
-
-        double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
 
         auto set_param = [&](auto* param) {
-          // cell are created with +100 to min and -100 to max
           param->bound_space_ = true;
           param->min_bound_ = 0;
-          param->max_bound_ = cubeDim + 200;
-          // neuroscience/param.h
-          param->my_parameter_1_ = movementThreshold;
-          param->my_parameter_2_ = deathThreshold;
+          param->max_bound_ = cubeDim;
       	  // set output directory name
-      	  param->output_dir_ = "output/" + to_string(movementThreshold) +
-            "_" + to_string(deathThreshold);
+      	  param->output_dir_ = "output/" + to_string(num_cells);
         };
 
         Simulation<> simulation(argc, argv, set_param);
-        auto* rm = simulation.GetResourceManager();
         auto* random = simulation.GetRandom();
         auto* scheduler = simulation.GetScheduler();
+        auto* rm = simulation.GetResourceManager();
         auto* param = simulation.GetParam();
 
         int mySeed = rand() % 10000;
         //  mySeed = 9784;
         random->SetSeed(mySeed);
 
-        cout << "iteration " << iteration+1 << " out of "
-             << numberOfIteration << endl;
-
         // min position, max position, number of cells , cell type
-        CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 0);
-        CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 1);
-        CellCreator<MyCell>(param->min_bound_, param->max_bound_, 0, 2);
-        CellCreator<MyCell>(param->min_bound_, param->max_bound_, num_cells, -1);
+        // CellCreator<MyCell>(param->min_bound_, param->max_bound_, num_cells, 0);
+        // CellCreator<MyCell>(param->min_bound_, param->max_bound_, num_cells/3, 1);
+        // CellCreator<MyCell>(param->min_bound_, param->max_bound_, num_cells/3, 2);
 
-        // 3. Define substances
-        ModelInitializer::DefineSubstance(0, "on_diffusion", diffusion_coef, decay_const,
-                                          param->max_bound_ / 2);
-        ModelInitializer::DefineSubstance(1, "off_diffusion", diffusion_coef, decay_const,
-                                          param->max_bound_ / 2);
-        ModelInitializer::DefineSubstance(2, "on_off_diffusion", diffusion_coef, decay_const,
-                                          param->max_bound_ / 2);
+
+        vector<array<double, 3>> cell_pos_list;
+
+        rm->template Reserve<MyCell>(num_cells);
+
+        for (int i = 0; i < num_cells; i++) {
+          double x = random->Uniform(param->min_bound_, param->max_bound_);
+          double y = random->Uniform(param->min_bound_, param->max_bound_);
+          // RGCL thickness before cell death ~24
+          double z = random->Uniform(20, 20); // 20, 35
+          std::array<double, 3> position = {x, y, z};
+
+          if (!conflict(position, 12)) {
+            MyCell cell(position);
+            cell.SetDiameter(12);
+            cell.SetCellType(0);
+            cell.SetInternalClock(0);
+            cell.SetDensity(0.001);
+            cell.SetPreviousPosition(position);
+            // cell.AddBiologyModule(Substance_secretion_BM());
+            // cell.AddBiologyModule(RGC_mosaic_BM());
+            rm->push_back(cell);
+            cell_pos_list.push_back(position);
+          }
+        }
+        //
+        // for (int i = 0; i < num_cells/3; i++) {
+        //   double x = random->Uniform(param->min_bound_, param->max_bound_);
+        //   double y = random->Uniform(param->min_bound_, param->max_bound_);
+        //   // RGCL thickness before cell death ~24
+        //   double z = random->Uniform(20, 20); // 20, 35
+        //   std::array<double, 3> position = {x, y, z};
+        //
+        //   if (!conflict(position, 12)) {
+        //     MyCell cell(position);
+        //     cell.SetDiameter(12);
+        //     cell.SetCellType(1);
+        //     cell.SetInternalClock(0);
+        //     cell.SetDensity(0.001);
+        //     cell.SetPreviousPosition(position);
+        //     // cell.AddBiologyModule(Substance_secretion_BM());
+        //     // cell.AddBiologyModule(RGC_mosaic_BM());
+        //     rm->push_back(cell);
+        //     cell_pos_list.push_back(position);
+        //   }
+        // }
+        //
+        // for (int i = 0; i < num_cells/3; i++) {
+        //   double x = random->Uniform(param->min_bound_, param->max_bound_);
+        //   double y = random->Uniform(param->min_bound_, param->max_bound_);
+        //   // RGCL thickness before cell death ~24
+        //   double z = random->Uniform(20, 20); // 20, 35
+        //   std::array<double, 3> position = {x, y, z};
+        //
+        //   if (!conflict(position, 12)) {
+        //     MyCell cell(position);
+        //     cell.SetDiameter(12);
+        //     cell.SetCellType(2);
+        //     cell.SetInternalClock(0);
+        //     cell.SetDensity(0.001);
+        //     cell.SetPreviousPosition(position);
+        //     // cell.AddBiologyModule(Substance_secretion_BM());
+        //     // cell.AddBiologyModule(RGC_mosaic_BM());
+        //     rm->push_back(cell);
+        //     cell_pos_list.push_back(position);
+        //   }
+        // }
 
         // 4. Run simulation for maxStep timesteps
         scheduler->Simulate(maxStep);
-
-        auto my_cells = rm->template Get<MyCell>();
-        int numberOfCells = my_cells->size();
-
-	      // mean of migration distance
-        int tempsMigrationDist = 0;
-        vector<array<double, 3>> coordList;
-        for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-          tempsMigrationDist += (*my_cells)[cellNum].GetDistanceTravelled();
-        }
-      	double aveMigrationDist = (double)tempsMigrationDist/numberOfCells;
-
-      	// sdt of migration distance
-      	double tempsStdDist = 0;
-      	for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
-      	  double dist = (*my_cells)[cellNum].GetDistanceTravelled();
-      	  double sqrDiffToMean =  pow(dist - aveMigrationDist, 2);
-      	  tempsStdDist += sqrDiffToMean;
-      	}
-      	double meanOfDiffs = tempsStdDist/(double)numberOfCells;
-      	double stdMigrationDist = sqrt(meanOfDiffs);
 
       	// export position of every cells
         if (writePositionExport) {
       	  position_exporteur(iteration);
       	}
 
+        double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
         double ri0 = getRI(0);
-        double ri1 = getRI(1);
-        double ri2 = getRI(2);
-
-        double cellDeath = (1 - ((double)numberOfCells / num_cells)) * 100;
-
-        cout << "  " << movementThreshold << " " << deathThreshold << " "
-             << ri0 << " " << ri1 << " " << ri2 << " "
-             << cellDensity << " " << cellDeath << " "
-             << aveMigrationDist << " " << stdMigrationDist << endl;
+        // double ri1 = getRI(1);
+        // double ri2 = getRI(2);
 
         ofstream param_outputFile;
-        param_outputFile.open("param_RI_study.txt", std::ios::app);
+        param_outputFile.open("param_RI_study_density.txt", std::ios::app);
 
-        param_outputFile << movementThreshold << " " << deathThreshold << " "
-                         << ri0 << " " << ri1 << " " << ri2 << " "
-                         << cellDensity << " " << cellDeath << " "
-                         << aveMigrationDist << " " << stdMigrationDist
-                         << "\n";
+        // param_outputFile << cellDensity << " " << (ri0+ri1+ri2)/3 << "\n";
+        param_outputFile << cellDensity << " " << ri0 << "\n";
 
         param_outputFile.close();
     } // end for iteration
-  } // end for parameter movement
-} // end fot parameter death
+} // end for num_cells
 
   return 0;
 

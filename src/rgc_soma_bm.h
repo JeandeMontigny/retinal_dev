@@ -24,13 +24,14 @@ using namespace std;
     void Run(T* cell) {
       auto* sim = TSimulation::GetActive();
       auto* random = sim->GetRandom();
-      auto* param = sim->GetParam();
 
       // run tangential migration
       bool withMovement = true;
-      double movementThreshold = param->my_parameter_1_;
+      double movementThreshold = 1;
+      // double movementThreshold = param->my_parameter_1_;
       bool withDeath = true;
-      double deathThreshold = param->my_parameter_2_;
+      double deathThreshold = 1;
+      // double deathThreshold = param->my_parameter_2_;
 
       // if not initialised, initialise substance diffusions
       if (!init_) {
