@@ -25,7 +25,7 @@ BDM_CTPARAM(experimental::neuroscience) {
   using NeuronSoma = MyCell;
 
   BDM_CTPARAM_FOR(bdm, MyCell) {
-    using BiologyModules = CTList<RGC_mosaic_BM,
+    using BiologyModules = CTList<Vertical_migration_BM, RGC_mosaic_BM,
                             Substance_secretion_BM>;
   };
 
@@ -45,11 +45,12 @@ inline int Simulate(int argc, const char** argv) {
   }
 
   int start_num_cells = 50;
-  int max_num_cells = 4450;
+  int max_num_cells = 4450; // 4450
   int step_num_cells = 100;
 
-  int numberOfIteration = 5;
+  int numberOfIteration = 5; // 5
   bool writePositionExport = true;
+  bool writeIndividualRI = true;
 
     for (int num_cells = start_num_cells; num_cells <= max_num_cells;
          num_cells += step_num_cells) {
@@ -59,7 +60,7 @@ inline int Simulate(int argc, const char** argv) {
            << step_num_cells << ")" << endl;
 
       for (int iteration = 0; iteration < numberOfIteration; iteration++) {
-        int maxStep = 10;
+        int maxStep = 100;
         int cubeDim = 500;
 
         auto set_param = [&](auto* param) {
@@ -94,7 +95,7 @@ inline int Simulate(int argc, const char** argv) {
           double x = random->Uniform(param->min_bound_, param->max_bound_);
           double y = random->Uniform(param->min_bound_, param->max_bound_);
           // RGCL thickness before cell death ~24
-          double z = random->Uniform(20, 20); // 20, 35
+          double z = random->Uniform(20, 35); // 20, 35
           std::array<double, 3> position = {x, y, z};
 
           if (!conflict(position, 12)) {
@@ -104,6 +105,7 @@ inline int Simulate(int argc, const char** argv) {
             cell.SetInternalClock(0);
             cell.SetDensity(0.001);
             cell.SetPreviousPosition(position);
+            cell.AddBiologyModule(Vertical_migration_BM());
             // cell.AddBiologyModule(Substance_secretion_BM());
             // cell.AddBiologyModule(RGC_mosaic_BM());
             rm->push_back(cell);
@@ -154,14 +156,27 @@ inline int Simulate(int argc, const char** argv) {
         // }
 
         // 4. Run simulation for maxStep timesteps
-        scheduler->Simulate(maxStep);
+        double cellDensity;
+        if (writeIndividualRI) {
+          cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
+          ofstream ri_outputFile;
+          ri_outputFile.open(Concat("individual/individual_RI_density_", cellDensity, ".txt").c_str(), std::ios::app);
+          for (int step=0; step<maxStep; step++) {
+            scheduler->Simulate(1);
+            ri_outputFile << cellDensity << " " << getRI(0) << "\n";
+          }
+        }
+        else {
+          scheduler->Simulate(maxStep);
+        }
 
       	// export position of every cells
         if (writePositionExport) {
       	  position_exporteur(iteration);
       	}
 
-        double cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
+        cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
+
         double ri0 = getRI(0);
         // double ri1 = getRI(1);
         // double ri2 = getRI(2);

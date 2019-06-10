@@ -6,6 +6,34 @@
 namespace bdm {
 using namespace std;
 
+
+struct Vertical_migration_BM : public BaseBiologyModule {
+  Vertical_migration_BM() : BaseBiologyModule(gNullEventId) {}
+
+  /// Default event handler (exising biology module won't be modified on
+  /// any event)
+  template <typename TEvent, typename... TBms>
+    void EventHandler(const TEvent&, TBms*...) {
+  }
+
+
+  template <typename T, typename TSimulation = Simulation<>>
+  void Run(T* cell) {
+
+    std::array<double, 3> direction;
+    if (cell->GetPosition()[2] < 27.5) {
+      direction = {0, 0, 0.1};
+    }
+    else {
+      direction = {0, 0, -0.1};
+    }
+    cell->UpdatePosition(direction);
+  }
+
+private:
+  ClassDefNV(Vertical_migration_BM, 1);
+};
+
   // Define cell behavior for mosaic formation
   struct RGC_mosaic_BM : public BaseBiologyModule {
     RGC_mosaic_BM() : BaseBiologyModule(gNullEventId) {}
