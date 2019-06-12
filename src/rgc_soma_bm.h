@@ -21,20 +21,39 @@ struct Vertical_migration_BM : public BaseBiologyModule {
   void Run(T* cell) {
     auto* random = TSimulation::GetActive()->GetRandom();
 
-    random_death = false;
+    std::array<double, 3> position = cell->GetPosition();
+
+    bool random_death = false;
+    bool colapse = false;
+    bool streaching = false;
+
+    double pos_x_centred = position[0] - 500;
+    double pos_y_centred = position[1] - 500;
+    std::array<double, 3> direction = {0,0,0};
+
+    // cell death
     if (random_death && random->Uniform(0, 1)<0.002) { // 0.005
       cell->RemoveFromSimulation();
     }
 
-    std::array<double, 3> direction;
-    if (cell->GetPosition()[2] < 27.5) {
-      direction = {0, 0, 0.1};
+    // streaching x
+    if (streaching) {
+      direction = {pos_x_centred*2, pos_y_centred*2, 0};
+      direction = Math::ScalarMult(0.001, direction);
     }
-    else {
-      direction = {0, 0, -0.1};
+
+    // layer colapse
+    if (colapse) {
+      if (position[2] < 27.5) {
+        direction[2] = 0.1;
+      }
+      else {
+        direction[2] = -0.1;
+      }
     }
+
     cell->UpdatePosition(direction);
-  }
+  } // end Run()
 
 private:
   ClassDefNV(Vertical_migration_BM, 1);
