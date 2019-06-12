@@ -54,7 +54,40 @@ using namespace std;
       }
     }
     return false;
-  }
+  } // end conflict
+
+
+  template <typename TSimulation = Simulation<>>
+  inline double GetSurface() {
+    auto* sim = TSimulation::GetActive();
+    auto* rm = sim->GetResourceManager();
+    auto* param = sim->GetParam();
+
+    double min_x = param->min_bound_;
+    double min_y = param->min_bound_;
+    double max_x = param->max_bound_;
+    double max_y = param->max_bound_;
+
+    auto my_cells = rm->template Get<MyCell>();
+    int numberOfCells = my_cells->size();
+    for (int cellNum = 0; cellNum < numberOfCells; cellNum++) {
+      auto cell_position = (*my_cells)[cellNum].GetPosition();
+      if (cell_position[0] < min_x) {
+        min_x = cell_position[0];
+      }
+      if (cell_position[1] < min_y) {
+        min_y = cell_position[1];
+      }
+      if (cell_position[0] > max_x) {
+        max_x = cell_position[0];
+      }
+      if (cell_position[1] > max_y) {
+        max_y = cell_position[1];
+      }
+    }
+    return (max_x-min_x) * (max_y-min_y);
+  } // end GetSurface
+
 
   // position exporteur
   template <typename TSimulation = Simulation<>>
