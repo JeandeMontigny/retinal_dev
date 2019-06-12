@@ -45,7 +45,7 @@ inline int Simulate(int argc, const char** argv) {
   }
 
   int start_num_cells = 50;
-  int max_num_cells = 3250; // 4450
+  int max_num_cells = 3850; // 4450 // 3250
   int step_num_cells = 100;
 
   int numberOfIteration = 5; // 5
@@ -61,7 +61,7 @@ inline int Simulate(int argc, const char** argv) {
 
       for (int iteration = 0; iteration < numberOfIteration; iteration++) {
         int maxStep = 200;
-        int cubeDim = 500;
+        int cubeDim = 500; // streaching: 1500
 
         auto set_param = [&](auto* param) {
           param->bound_space_ = true;
@@ -92,67 +92,78 @@ inline int Simulate(int argc, const char** argv) {
         rm->template Reserve<MyCell>(num_cells);
 
         for (int i = 0; i < num_cells; i++) {
-          double x = random->Uniform(param->min_bound_, param->max_bound_);
-          double y = random->Uniform(param->min_bound_, param->max_bound_);
-          // RGCL thickness before cell death ~24
-          double z = random->Uniform(20, 35); // 20, 35
-          std::array<double, 3> position = {x, y, z};
+          std::array<double, 3> position;
+          do {
+            // double x = random->Uniform(500, 1000);
+            // double y = random->Uniform(500, 1000);
+            double x = random->Uniform(param->min_bound_, param->max_bound_);
+            double y = random->Uniform(param->min_bound_, param->max_bound_);
+            // RGCL thickness before cell death ~24
+            double z = random->Uniform(20, 20); // 20, 35
+            position = {x, y, z};
+          } while (conflict(position, 10));
 
-          if (!conflict(position, 12)) {
-            MyCell cell(position);
-            cell.SetDiameter(12);
-            cell.SetCellType(0);
-            cell.SetInternalClock(0);
-            cell.SetDensity(0.001);
-            cell.SetPreviousPosition(position);
-            cell.AddBiologyModule(Vertical_migration_BM());
-            // cell.AddBiologyModule(Substance_secretion_BM());
-            // cell.AddBiologyModule(RGC_mosaic_BM());
-            rm->push_back(cell);
-            cell_pos_list.push_back(position);
-          }
+          MyCell cell(position);
+          cell.SetDiameter(10);
+          cell.SetCellType(0);
+          cell.SetInternalClock(0);
+          cell.SetDensity(0.001);
+          cell.SetPreviousPosition(position);
+          cell.AddBiologyModule(Vertical_migration_BM());
+          // cell.AddBiologyModule(Substance_secretion_BM());
+          // cell.AddBiologyModule(RGC_mosaic_BM());
+          rm->push_back(cell);
+          cell_pos_list.push_back(position);
         }
         //
         // for (int i = 0; i < num_cells/3; i++) {
-        //   double x = random->Uniform(param->min_bound_, param->max_bound_);
-        //   double y = random->Uniform(param->min_bound_, param->max_bound_);
-        //   // RGCL thickness before cell death ~24
-        //   double z = random->Uniform(20, 20); // 20, 35
-        //   std::array<double, 3> position = {x, y, z};
+        //   std::array<double, 3> position;
+        //   do {
+        //     // double x = random->Uniform(500, 1000);
+        //     // double y = random->Uniform(500, 1000);
+        //     double x = random->Uniform(param->min_bound_, param->max_bound_);
+        //     double y = random->Uniform(param->min_bound_, param->max_bound_);
+        //     // RGCL thickness before cell death ~24
+        //     double z = random->Uniform(20, 20); // 20, 35
+        //     position = {x, y, z};
+        //   } while (conflict(position, 10));
         //
-        //   if (!conflict(position, 12)) {
-        //     MyCell cell(position);
-        //     cell.SetDiameter(12);
-        //     cell.SetCellType(1);
-        //     cell.SetInternalClock(0);
-        //     cell.SetDensity(0.001);
-        //     cell.SetPreviousPosition(position);
-        //     // cell.AddBiologyModule(Substance_secretion_BM());
-        //     // cell.AddBiologyModule(RGC_mosaic_BM());
-        //     rm->push_back(cell);
-        //     cell_pos_list.push_back(position);
-        //   }
+        //   MyCell cell(position);
+        //   cell.SetDiameter(10);
+        //   cell.SetCellType(1);
+        //   cell.SetInternalClock(0);
+        //   cell.SetDensity(0.001);
+        //   cell.SetPreviousPosition(position);
+        //   cell.AddBiologyModule(Vertical_migration_BM());
+        //   // cell.AddBiologyModule(Substance_secretion_BM());
+        //   // cell.AddBiologyModule(RGC_mosaic_BM());
+        //   rm->push_back(cell);
+        //   cell_pos_list.push_back(position);
         // }
         //
         // for (int i = 0; i < num_cells/3; i++) {
-        //   double x = random->Uniform(param->min_bound_, param->max_bound_);
-        //   double y = random->Uniform(param->min_bound_, param->max_bound_);
-        //   // RGCL thickness before cell death ~24
-        //   double z = random->Uniform(20, 20); // 20, 35
-        //   std::array<double, 3> position = {x, y, z};
+        //   std::array<double, 3> position;
+        //   do {
+        //     // double x = random->Uniform(500, 1000);
+        //     // double y = random->Uniform(500, 1000);
+        //     double x = random->Uniform(param->min_bound_, param->max_bound_);
+        //     double y = random->Uniform(param->min_bound_, param->max_bound_);
+        //     // RGCL thickness before cell death ~24
+        //     double z = random->Uniform(20, 20); // 20, 35
+        //     position = {x, y, z};
+        //   } while (conflict(position, 10));
         //
-        //   if (!conflict(position, 12)) {
-        //     MyCell cell(position);
-        //     cell.SetDiameter(12);
-        //     cell.SetCellType(2);
-        //     cell.SetInternalClock(0);
-        //     cell.SetDensity(0.001);
-        //     cell.SetPreviousPosition(position);
-        //     // cell.AddBiologyModule(Substance_secretion_BM());
-        //     // cell.AddBiologyModule(RGC_mosaic_BM());
-        //     rm->push_back(cell);
-        //     cell_pos_list.push_back(position);
-        //   }
+        //   MyCell cell(position);
+        //   cell.SetDiameter(10);
+        //   cell.SetCellType(2);
+        //   cell.SetInternalClock(0);
+        //   cell.SetDensity(0.001);
+        //   cell.SetPreviousPosition(position);
+        //   cell.AddBiologyModule(Vertical_migration_BM());
+        //   // cell.AddBiologyModule(Substance_secretion_BM());
+        //   // cell.AddBiologyModule(RGC_mosaic_BM());
+        //   rm->push_back(cell);
+        //   cell_pos_list.push_back(position);
         // }
 
         // 4. Run simulation for maxStep timesteps
@@ -164,7 +175,7 @@ inline int Simulate(int argc, const char** argv) {
           ri_outputFile.open(Concat("individual/individual_RI_density_", cellDensity, ".txt").c_str(), std::ios::app);
           for (int step=0; step<maxStep; step++) {
             scheduler->Simulate(1);
-            ri_outputFile << cellDensity << " " << getRI(0) << "\n";
+            ri_outputFile << cellDensity << " " << getRI(0) << GetSurface() << "\n";
           }
           real_num_cells = rm->template Get<MyCell>()->size();
           real_cellDensity = real_num_cells * 1e6 / (cubeDim * cubeDim);
