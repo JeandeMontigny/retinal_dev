@@ -45,7 +45,7 @@ inline int Simulate(int argc, const char** argv) {
   }
 
   int start_num_cells = 50;
-  int max_num_cells = 4450; // 4450
+  int max_num_cells = 3250; // 4450
   int step_num_cells = 100;
 
   int numberOfIteration = 5; // 5
@@ -60,7 +60,7 @@ inline int Simulate(int argc, const char** argv) {
            << step_num_cells << ")" << endl;
 
       for (int iteration = 0; iteration < numberOfIteration; iteration++) {
-        int maxStep = 100;
+        int maxStep = 200;
         int cubeDim = 500;
 
         auto set_param = [&](auto* param) {
@@ -157,6 +157,7 @@ inline int Simulate(int argc, const char** argv) {
 
         // 4. Run simulation for maxStep timesteps
         double cellDensity;
+        double real_cellDensity; double real_num_cells;
         if (writeIndividualRI) {
           cellDensity = (double)num_cells * 1e6 / (cubeDim * cubeDim);
           ofstream ri_outputFile;
@@ -165,6 +166,11 @@ inline int Simulate(int argc, const char** argv) {
             scheduler->Simulate(1);
             ri_outputFile << cellDensity << " " << getRI(0) << "\n";
           }
+          real_num_cells = rm->template Get<MyCell>()->size();
+          real_cellDensity = real_num_cells * 1e6 / (cubeDim * cubeDim);
+          std::cout << "\tstart density: " << cellDensity << "; final density: "
+                    << real_cellDensity << "; resulting cell death: "
+                    << (1 - real_num_cells / (double)num_cells) * 100 << std::endl;
         }
         else {
           scheduler->Simulate(maxStep);

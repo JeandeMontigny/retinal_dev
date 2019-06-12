@@ -19,6 +19,12 @@ struct Vertical_migration_BM : public BaseBiologyModule {
 
   template <typename T, typename TSimulation = Simulation<>>
   void Run(T* cell) {
+    auto* random = TSimulation::GetActive()->GetRandom();
+
+    random_death = false;
+    if (random_death && random->Uniform(0, 1)<0.002) { // 0.005
+      cell->RemoveFromSimulation();
+    }
 
     std::array<double, 3> direction;
     if (cell->GetPosition()[2] < 27.5) {
