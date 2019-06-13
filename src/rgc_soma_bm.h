@@ -24,15 +24,15 @@ struct Vertical_migration_BM : public BaseBiologyModule {
     std::array<double, 3> position = cell->GetPosition();
 
     bool random_death = false;
-    bool colapse = false;
-    bool streaching = false;
+    bool colapse = true;
+    bool streaching = true;
 
-    double pos_x_centred = position[0] - 500;
-    double pos_y_centred = position[1] - 500;
+    double pos_x_centred = position[0] - 500; // 500: corner; 750: center
+    double pos_y_centred = position[1] - 500; // 500: corner; 750: center
     std::array<double, 3> direction = {0,0,0};
 
     // cell death
-    if (random_death && random->Uniform(0, 1)<0.002) { // 0.005
+    if (random_death && random->Uniform(0, 1)<0.005) { // 0.005
       cell->RemoveFromSimulation();
     }
 
