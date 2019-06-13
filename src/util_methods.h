@@ -241,6 +241,9 @@ using namespace std;
   // RI computation
   inline double computeRI(vector<array<double, 3>> coordList) {
     vector<double> shortestDistList;
+    if (coordList.size() < 2) {
+      return 0;
+    }
     for (unsigned int i = 0; i < coordList.size();
          i++) {  // for each cell of same type in the simulation
       array<double, 3> cellPosition = coordList[i];
